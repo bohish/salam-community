@@ -1,12 +1,5 @@
-import { Player } from "@/data/players";
+import type { Player } from "@/types/player";
 import { TrendingUp, TrendingDown } from "lucide-react";
-
-const cardBgClass: Record<string, string> = {
-  gold: "card-gold",
-  totw: "card-totw",
-  toty: "card-toty",
-  icon: "card-icon",
-};
 
 const formatPrice = (price: number): string => {
   if (price >= 1000000) return `${(price / 1000000).toFixed(1)}M`;
@@ -30,10 +23,12 @@ const StatRow = ({ label, value }: { label: string; value: number }) => {
 };
 
 const PlayerCard = ({ player, onClick }: PlayerCardProps) => {
+  const cardClass = player.rating >= 86 ? "card-toty" : player.rating >= 80 ? "card-gold" : "card-totw";
+
   return (
     <div
       onClick={onClick}
-      className={`relative group cursor-pointer rounded-lg overflow-hidden transition-all duration-300 hover:scale-105 hover:glow-gold animate-slide-up ${cardBgClass[player.cardType]}`}
+      className={`relative group cursor-pointer rounded-lg overflow-hidden transition-all duration-300 hover:scale-105 hover:glow-gold animate-slide-up ${cardClass}`}
     >
       <div className="p-4 flex flex-col items-center relative">
         {/* Rating & Position */}
@@ -46,16 +41,24 @@ const PlayerCard = ({ player, onClick }: PlayerCardProps) => {
           </span>
         </div>
 
-        {/* Nation */}
-        <div className="absolute top-3 right-3 text-2xl">
-          {player.nation}
+        {/* Nation flag */}
+        <div className="absolute top-3 right-3">
+          {player.nationImage ? (
+            <img src={player.nationImage} alt={player.nation} className="w-6 h-4 object-contain" />
+          ) : (
+            <span className="text-sm">{player.nation}</span>
+          )}
         </div>
 
-        {/* Player silhouette area */}
-        <div className="w-20 h-20 rounded-full bg-black/20 flex items-center justify-center mt-2 mb-2">
-          <span className="text-4xl font-heading font-bold text-primary-foreground/40">
-            {player.name.charAt(0)}
-          </span>
+        {/* Player avatar */}
+        <div className="w-20 h-20 rounded-full bg-black/20 flex items-center justify-center mt-2 mb-2 overflow-hidden">
+          {player.avatarUrl ? (
+            <img src={player.avatarUrl} alt={player.name} className="w-full h-full object-cover" />
+          ) : (
+            <span className="text-4xl font-heading font-bold text-primary-foreground/40">
+              {player.name.charAt(0)}
+            </span>
+          )}
         </div>
 
         {/* Name */}
@@ -64,7 +67,12 @@ const PlayerCard = ({ player, onClick }: PlayerCardProps) => {
         </h3>
 
         {/* Club */}
-        <p className="text-[10px] text-primary-foreground/60 mb-2">{player.club}</p>
+        <div className="flex items-center gap-1 mb-2">
+          {player.clubImage && (
+            <img src={player.clubImage} alt={player.club} className="w-4 h-4 object-contain" />
+          )}
+          <p className="text-[10px] text-primary-foreground/60">{player.club}</p>
+        </div>
 
         {/* Stats */}
         <div className="w-full grid grid-cols-2 gap-x-3 gap-y-0.5 text-primary-foreground">
@@ -74,17 +82,6 @@ const PlayerCard = ({ player, onClick }: PlayerCardProps) => {
           <StatRow label="DRI" value={player.dribbling} />
           <StatRow label="DEF" value={player.defending} />
           <StatRow label="PHY" value={player.physical} />
-        </div>
-
-        {/* Price */}
-        <div className="mt-3 pt-2 border-t border-primary-foreground/20 w-full flex items-center justify-between">
-          <span className="font-heading font-bold text-sm text-primary-foreground">
-            {formatPrice(player.price)}
-          </span>
-          <span className={`flex items-center gap-0.5 text-xs font-semibold ${player.priceChange >= 0 ? "text-accent" : "text-destructive"}`}>
-            {player.priceChange >= 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
-            {Math.abs(player.priceChange)}%
-          </span>
         </div>
       </div>
     </div>
