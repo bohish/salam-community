@@ -58,7 +58,8 @@ const HomePage = () => {
       </div>
 
       {/* Quick links */}
-      <div className="grid grid-cols-4 sm:grid-cols-7 gap-2 mb-8">
+      <div className="grid grid-cols-4 sm:grid-cols-8 gap-2 mb-8">
+        <QuickLink to="/events" icon={Sparkles} label="الأحداث" />
         <QuickLink to="/players" icon={Users} label="استكشاف" />
         <QuickLink to="/stats" icon={BarChart3} label="إحصائيات" />
         <QuickLink to="/compare" icon={GitCompare} label="مقارنة" />
