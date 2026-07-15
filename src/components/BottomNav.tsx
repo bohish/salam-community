@@ -1,4 +1,4 @@
-import { Home, Search, Users, GitCompare, Heart } from "lucide-react";
+import { Home, Search, Sparkles, GitCompare, Heart } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { useFavorites } from "@/hooks/useFavorites";
 import { useCompare } from "@/hooks/useCompare";
@@ -10,7 +10,7 @@ const BottomNav = () => {
   const tabs = [
     { path: "/", icon: Home, label: "الرئيسية", end: true },
     { path: "/search", icon: Search, label: "بحث" },
-    { path: "/players", icon: Users, label: "استكشاف" },
+    { path: "/events", icon: Sparkles, label: "الأحداث" },
     { path: "/compare", icon: GitCompare, label: "مقارنة", badge: compare.count },
     { path: "/favorites", icon: Heart, label: "المفضلة", badge: favorites.length },
   ];

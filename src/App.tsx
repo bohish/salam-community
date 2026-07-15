@@ -18,6 +18,7 @@ import LeaguesPage from "@/pages/LeaguesPage";
 import EntityPlayersPage from "@/pages/EntityPlayersPage";
 import StatsIndexPage from "@/pages/StatsIndexPage";
 import StatsPage from "@/pages/StatsPage";
+import EventsPage from "@/pages/EventsPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -44,6 +45,7 @@ const App = () => (
               <Route path="/" element={<HomePage />} />
               <Route path="/search" element={<SearchPage />} />
               <Route path="/players" element={<PlayersPage />} />
+              <Route path="/events" element={<EventsPage />} />
               <Route path="/compare" element={<ComparePage />} />
               <Route path="/player/:id" element={<PlayerDetailPage />} />
               <Route path="/stats" element={<StatsIndexPage />} />
