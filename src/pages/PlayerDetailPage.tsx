@@ -1,9 +1,13 @@
 import { useParams, Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { Heart, ArrowRight, ExternalLink } from "lucide-react";
+import { Heart, ExternalLink, GitCompare } from "lucide-react";
 import { usePlayerById } from "@/hooks/useFc26";
 import { buildStatGroups } from "@/types/player";
 import { useFavorites } from "@/hooks/useFavorites";
+import { useCompare } from "@/hooks/useCompare";
+import Breadcrumbs from "@/components/Breadcrumbs";
+import { Skeleton } from "@/components/Skeleton";
+import { parseIdFromSlug, playerSlug } from "@/lib/slug";
 
 const StatBar = ({ label, value }: { label: string; value: number }) => {
   const color = value >= 85 ? "bg-primary" : value >= 70 ? "bg-accent" : value >= 50 ? "bg-gold" : "bg-destructive";
@@ -33,13 +37,17 @@ const Meta = ({ label, value }: { label: string; value: React.ReactNode }) => (
 );
 
 const PlayerDetailPage = () => {
-  const { id } = useParams();
-  const { data: player, isLoading, error } = usePlayerById(id);
+  const { id: rawParam } = useParams();
+  const numericId = parseIdFromSlug(rawParam || "");
+  const { data: player, isLoading, error } = usePlayerById(numericId);
   const { isFavorite, toggle } = useFavorites();
+  const compare = useCompare();
 
   if (isLoading) return (
-    <div className="container mx-auto px-4 py-6 max-w-4xl">
-      <div className="h-96 animate-shimmer rounded-3xl" />
+    <div className="container mx-auto px-4 py-6 max-w-4xl space-y-4">
+      <Skeleton className="h-4 w-32" />
+      <Skeleton className="h-72" />
+      <Skeleton className="h-40" />
     </div>
   );
 
@@ -52,17 +60,42 @@ const PlayerDetailPage = () => {
 
   const groups = buildStatGroups(player);
   const fav = isFavorite(player.id);
+  const inCompare = compare.has(player.id);
+  const canonical = `/player/${playerSlug(player.name, player.id)}`;
 
   return (
     <div className="container mx-auto px-4 py-4 max-w-4xl">
       <Helmet>
-        <title>{player.name} · {player.rating} {player.position} — FUTHUB</title>
-        <meta name="description" content={`إحصائيات وتفاصيل ${player.name} في EA SPORTS FC 26. تقييم ${player.rating}، ${player.club}.`} />
-        <link rel="canonical" href={`${window.location.origin}/player/${player.id}`} />
+        <title>{player.name} · {player.rating} {player.position} — FUTHUB FC 26</title>
+        <meta name="description" content={`إحصائيات وتفاصيل ${player.name} في EA SPORTS FC 26. تقييم ${player.rating}, ${player.club} · ${player.nation}.`} />
+        <link rel="canonical" href={canonical} />
+        <meta property="og:title" content={`${player.name} — ${player.rating} ${player.position}`} />
+        <meta property="og:description" content={`${player.club} · ${player.nation} · إحصائيات EA FC 26 كاملة.`} />
+        <meta property="og:url" content={canonical} />
+        {player.cardUrl && <meta property="og:image" content={player.cardUrl} />}
+        <script type="application/ld+json">{JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "Person",
+          name: player.name,
+          nationality: player.nation,
+          affiliation: player.club,
+          jobTitle: `${player.position} · EA SPORTS FC 26`,
+        })}</script>
       </Helmet>
 
-      <div className="flex items-center justify-between mb-4">
-        <Link to="/" className="text-sm text-muted-foreground flex items-center gap-1"><ArrowRight className="w-4 h-4" /> رجوع</Link>
+      <Breadcrumbs items={[
+        { label: "اللاعبون", href: "/players" },
+        { label: player.name },
+      ]} />
+
+      <div className="flex items-center justify-end gap-2 mb-4">
+        <button
+          onClick={() => compare.toggle(player.id)}
+          className={`glass px-3 py-1.5 rounded-full flex items-center gap-1.5 text-xs font-semibold ${inCompare ? "text-primary" : ""}`}
+        >
+          <GitCompare className="w-3.5 h-3.5" />
+          {inCompare ? "في المقارنة" : "أضف للمقارنة"}
+        </button>
         <button
           onClick={() => toggle(player)}
           className="glass px-3 py-1.5 rounded-full flex items-center gap-1.5 text-xs font-semibold"
@@ -72,7 +105,6 @@ const PlayerDetailPage = () => {
         </button>
       </div>
 
-      {/* Hero */}
       <div className="card-premium rounded-3xl p-5 mb-6 flex flex-col md:flex-row items-center gap-5">
         <div className="w-40 h-56 flex items-center justify-center shrink-0">
           {player.cardUrl && (
@@ -130,10 +162,8 @@ const PlayerDetailPage = () => {
               {player.playStyles.map((ps) => {
                 const plus = ps.endsWith("+");
                 return (
-                  <span
-                    key={ps}
-                    className={`px-3 py-1.5 rounded-full text-xs font-bold ${plus ? "bg-gradient-primary text-primary-foreground" : "glass"}`}
-                  >
+                  <span key={ps}
+                    className={`px-3 py-1.5 rounded-full text-xs font-bold ${plus ? "bg-gradient-primary text-primary-foreground" : "glass"}`}>
                     {ps}
                   </span>
                 );

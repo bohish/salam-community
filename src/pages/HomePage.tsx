@@ -1,14 +1,16 @@
 import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { Search, Trophy, Users, Globe2, Shield, Sparkles, ArrowLeft } from "lucide-react";
+import { Trophy, Users, Globe2, Shield, Sparkles, ArrowLeft, GitCompare, BarChart3 } from "lucide-react";
 import { useTopRanked, useRandomBatch } from "@/hooks/useFc26";
 import PlayerCard from "@/components/PlayerCard";
 import PlayerListRow from "@/components/PlayerListRow";
+import SearchSuggestions from "@/components/SearchSuggestions";
+import { PlayerCardSkeleton, PlayerRowSkeleton } from "@/components/Skeleton";
 
 const QuickLink = ({ to, icon: Icon, label }: { to: string; icon: any; label: string }) => (
   <Link to={to} className="glass rounded-xl p-3 flex flex-col items-center gap-1.5 hover:glass-strong transition-fluid">
     <Icon className="w-5 h-5 text-primary" />
-    <span className="text-xs font-semibold">{label}</span>
+    <span className="text-[11px] font-semibold">{label}</span>
   </Link>
 );
 
@@ -40,50 +42,59 @@ const HomePage = () => {
     <div className="container mx-auto px-4 py-4 max-w-5xl">
       <Helmet>
         <title>FUTHUB — قاعدة بيانات EA SPORTS FC 26</title>
-        <meta name="description" content="اكتشف لاعبي EA SPORTS FC 26 بالتفاصيل الكاملة والإحصائيات والفلاتر السريعة." />
+        <meta name="description" content="اكتشف لاعبي EA SPORTS FC 26 بالتفاصيل الكاملة، الإحصائيات، الفلاتر المتقدمة، والمقارنات." />
+        <link rel="canonical" href="/" />
       </Helmet>
 
-      {/* Hero search */}
+      {/* Hero */}
       <div className="bg-gradient-hero rounded-3xl p-5 mb-6 border border-border/60 shadow-[var(--shadow-card)]">
         <div className="flex items-center gap-2 mb-2">
           <Sparkles className="w-4 h-4 text-primary" />
           <span className="text-xs font-bold uppercase tracking-widest text-primary">FC 26 · محدث</span>
         </div>
         <h1 className="text-2xl font-black mb-1">قاعدة بيانات لاعبي FC 26</h1>
-        <p className="text-sm text-muted-foreground mb-4">إحصائيات كاملة، ستايلات اللعب، أندية وبطولات.</p>
-        <Link to="/search" className="glass-strong flex items-center gap-2 px-4 py-3 rounded-2xl">
-          <Search className="w-4 h-4 text-primary" />
-          <span className="text-sm text-muted-foreground flex-1 text-right">ابحث باسم اللاعب أو ID...</span>
-        </Link>
+        <p className="text-sm text-muted-foreground mb-4">إحصائيات كاملة، ستايلات اللعب، مقارنات وفلاتر متقدمة.</p>
+        <SearchSuggestions variant="hero" placeholder="ابحث باسم اللاعب أو ID..." />
       </div>
 
       {/* Quick links */}
-      <div className="grid grid-cols-4 gap-2 mb-8">
+      <div className="grid grid-cols-4 sm:grid-cols-7 gap-2 mb-8">
+        <QuickLink to="/players" icon={Users} label="استكشاف" />
+        <QuickLink to="/stats" icon={BarChart3} label="إحصائيات" />
+        <QuickLink to="/compare" icon={GitCompare} label="مقارنة" />
         <QuickLink to="/clubs" icon={Shield} label="الأندية" />
         <QuickLink to="/leagues" icon={Trophy} label="الدوريات" />
         <QuickLink to="/nations" icon={Globe2} label="المنتخبات" />
         <QuickLink to="/favorites" icon={Users} label="المفضلة" />
       </div>
 
-      {/* Featured (random) */}
       <Section title="لاعبون مميزون">
-        {random.isLoading && <div className="h-52 animate-shimmer rounded-2xl" />}
+        {random.isLoading && (
+          <div className="flex gap-3 overflow-x-auto hide-scrollbar -mx-4 px-4">
+            {Array.from({ length: 6 }).map((_, i) => <div key={i} className="w-40 shrink-0"><PlayerCardSkeleton /></div>)}
+          </div>
+        )}
         {random.error && <p className="text-sm text-destructive">تعذّر تحميل البيانات.</p>}
         {random.data && <Row players={random.data} />}
       </Section>
 
-      {/* Top rated */}
       <Section
         title="أعلى تقييماً"
-        action={<Link to="/search" className="text-xs text-primary flex items-center gap-1">عرض الكل <ArrowLeft className="w-3 h-3" /></Link>}
+        action={<Link to="/players" className="text-xs text-primary flex items-center gap-1">عرض الكل <ArrowLeft className="w-3 h-3" /></Link>}
       >
-        {top.isLoading && <div className="h-52 animate-shimmer rounded-2xl" />}
-        {top.error && <p className="text-sm text-destructive">تعذّر تحميل البيانات.</p>}
+        {top.isLoading && (
+          <div className="flex gap-3 overflow-x-auto hide-scrollbar -mx-4 px-4">
+            {Array.from({ length: 6 }).map((_, i) => <div key={i} className="w-40 shrink-0"><PlayerCardSkeleton /></div>)}
+          </div>
+        )}
         {top.data && <Row players={top.data.slice(0, 12)} />}
       </Section>
 
-      {/* Popular list */}
-      <Section title="الأكثر شعبية">
+      <Section
+        title="الأكثر شعبية"
+        action={<Link to="/stats" className="text-xs text-primary flex items-center gap-1">التصنيفات <ArrowLeft className="w-3 h-3" /></Link>}
+      >
+        {top.isLoading && <div className="grid gap-2">{Array.from({ length: 6 }).map((_, i) => <PlayerRowSkeleton key={i} />)}</div>}
         {top.data && (
           <div className="grid gap-2">
             {top.data.slice(12, 24).map((p) => <PlayerListRow key={p.id} player={p} />)}
