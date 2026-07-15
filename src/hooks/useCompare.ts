@@ -1,13 +1,4 @@
-import { create } from "zustand";
 import type { Player } from "@/types/player";
-
-interface CompareStore {
-  players: Player[];
-  add: (player: Player) => void;
-  remove: (id: number) => void;
-  clear: () => void;
-  has: (id: number) => boolean;
-}
 
 // Simple in-memory store without zustand dependency
 type Listener = () => void;
