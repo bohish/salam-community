@@ -6,12 +6,14 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import AppHeader from "@/components/AppHeader";
 import BottomNav from "@/components/BottomNav";
 import HomePage from "@/pages/HomePage";
-import PlayersPage from "@/pages/PlayersPage";
 import SearchPage from "@/pages/SearchPage";
 import AuthPage from "@/pages/AuthPage";
 import PlayerDetailPage from "@/pages/PlayerDetailPage";
-import ComparePage from "@/pages/ComparePage";
 import FavoritesPage from "@/pages/FavoritesPage";
+import ClubsPage from "@/pages/ClubsPage";
+import NationsPage from "@/pages/NationsPage";
+import LeaguesPage from "@/pages/LeaguesPage";
+import EntityPlayersPage from "@/pages/EntityPlayersPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -19,6 +21,7 @@ const queryClient = new QueryClient({
     queries: {
       staleTime: 5 * 60 * 1000,
       refetchOnWindowFocus: false,
+      retry: 1,
     },
   },
 });
@@ -34,10 +37,14 @@ const App = () => (
           <main className="flex-1 pb-safe">
             <Routes>
               <Route path="/" element={<HomePage />} />
-              <Route path="/players" element={<PlayersPage />} />
-              <Route path="/player/:id" element={<PlayerDetailPage />} />
               <Route path="/search" element={<SearchPage />} />
-              <Route path="/compare" element={<ComparePage />} />
+              <Route path="/player/:id" element={<PlayerDetailPage />} />
+              <Route path="/clubs" element={<ClubsPage />} />
+              <Route path="/club/:name" element={<EntityPlayersPage mode="club" />} />
+              <Route path="/leagues" element={<LeaguesPage />} />
+              <Route path="/league/:name" element={<EntityPlayersPage mode="league" />} />
+              <Route path="/nations" element={<NationsPage />} />
+              <Route path="/nation/:name" element={<EntityPlayersPage mode="nation" />} />
               <Route path="/favorites" element={<FavoritesPage />} />
               <Route path="/auth" element={<AuthPage />} />
               <Route path="*" element={<NotFound />} />
