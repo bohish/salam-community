@@ -1,253 +1,166 @@
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { usePlayers } from "@/hooks/usePlayers";
+import { Heart, ArrowRight, ExternalLink } from "lucide-react";
+import { usePlayerById } from "@/hooks/useFc26";
+import { buildStatGroups } from "@/types/player";
 import { useFavorites } from "@/hooks/useFavorites";
-import { useCompare } from "@/hooks/useCompare";
-import { ArrowRight, Heart, GitCompare, Ruler, Weight, Star as StarIcon } from "lucide-react";
-import { useMemo } from "react";
 
 const StatBar = ({ label, value }: { label: string; value: number }) => {
-  const color =
-    value >= 90 ? "from-cyan-400 to-primary" :
-    value >= 80 ? "from-primary to-primary-glow" :
-    value >= 70 ? "from-yellow-500 to-amber-500" :
-    "from-orange-500 to-destructive";
-
+  const color = value >= 85 ? "bg-primary" : value >= 70 ? "bg-accent" : value >= 50 ? "bg-gold" : "bg-destructive";
   return (
-    <div className="space-y-1.5">
-      <div className="flex items-center justify-between text-xs">
-        <span className="font-bold text-muted-foreground">{label}</span>
-        <span className="font-black text-foreground">{value}</span>
+    <div className="flex items-center gap-3 text-xs">
+      <span className="w-24 shrink-0 text-muted-foreground">{label}</span>
+      <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+        <div className={`h-full ${color} transition-all`} style={{ width: `${Math.min(100, value)}%` }} />
       </div>
-      <div className="h-2 bg-secondary/70 rounded-full overflow-hidden">
-        <div
-          className={`h-full bg-gradient-to-r ${color} rounded-full transition-all duration-700`}
-          style={{ width: `${value}%` }}
-        />
-      </div>
+      <span className="w-8 text-right font-bold">{value}</span>
     </div>
   );
 };
 
+const MainStat = ({ label, value }: { label: string; value: number }) => (
+  <div className="glass rounded-xl p-3 text-center">
+    <p className="text-xs text-muted-foreground font-semibold mb-1">{label}</p>
+    <p className="text-2xl font-black text-gradient-primary">{value}</p>
+  </div>
+);
+
+const Meta = ({ label, value }: { label: string; value: React.ReactNode }) => (
+  <div className="flex items-center justify-between text-sm py-2 border-b border-border/50 last:border-0">
+    <span className="text-muted-foreground">{label}</span>
+    <span className="font-semibold">{value || "—"}</span>
+  </div>
+);
+
 const PlayerDetailPage = () => {
   const { id } = useParams();
-  const navigate = useNavigate();
-  const playerId = Number(id);
-
-  // Search across all pages for now (basic)
-  const { data: page1, isLoading } = usePlayers({ limit: 100, offset: 0 });
-  const { data: page2 } = usePlayers({ limit: 100, offset: 100 });
-  const { data: page3 } = usePlayers({ limit: 100, offset: 200 });
-
-  const player = useMemo(() => {
-    const all = [...(page1?.players || []), ...(page2?.players || []), ...(page3?.players || [])];
-    return all.find((p) => p.id === playerId);
-  }, [page1, page2, page3, playerId]);
-
+  const { data: player, isLoading, error } = usePlayerById(id);
   const { isFavorite, toggle } = useFavorites();
-  const { has: inCompare, add: addCompare, remove: removeCompare } = useCompare();
 
-  if (isLoading && !player) {
-    return (
-      <div className="container mx-auto px-4 py-8 flex items-center justify-center min-h-[60vh]">
-        <div className="w-10 h-10 border-3 border-primary border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
+  if (isLoading) return (
+    <div className="container mx-auto px-4 py-6 max-w-4xl">
+      <div className="h-96 animate-shimmer rounded-3xl" />
+    </div>
+  );
 
-  if (!player) {
-    return (
-      <div className="container mx-auto px-4 py-16 text-center">
-        <p className="text-4xl mb-4">🔍</p>
-        <p className="text-muted-foreground mb-4">اللاعب غير موجود في هذه الصفحة</p>
-        <Link to="/players" className="text-primary hover:underline">← تصفح اللاعبين</Link>
-      </div>
-    );
-  }
+  if (error || !player) return (
+    <div className="container mx-auto px-4 py-12 text-center">
+      <p className="text-destructive mb-2">تعذّر تحميل بيانات اللاعب.</p>
+      <Link to="/" className="text-primary text-sm">العودة للرئيسية</Link>
+    </div>
+  );
 
+  const groups = buildStatGroups(player);
   const fav = isFavorite(player.id);
-  const cmp = inCompare(player.id);
-
-  const isGK = player.position === "GK";
 
   return (
-    <>
+    <div className="container mx-auto px-4 py-4 max-w-4xl">
       <Helmet>
-        <title>{player.name} - {player.rating} {player.position} | FUTHUB</title>
-        <meta name="description" content={`${player.name} - ${player.club}, ${player.league}. تقييم ${player.rating}, مركز ${player.position}. إحصائيات كاملة على FUTHUB.`} />
-        <link rel="canonical" href={`/player/${player.id}`} />
+        <title>{player.name} · {player.rating} {player.position} — FUTHUB</title>
+        <meta name="description" content={`إحصائيات وتفاصيل ${player.name} في EA SPORTS FC 26. تقييم ${player.rating}، ${player.club}.`} />
+        <link rel="canonical" href={`${window.location.origin}/player/${player.id}`} />
       </Helmet>
 
-      <div className="container mx-auto px-4 py-4">
-        {/* Back */}
+      <div className="flex items-center justify-between mb-4">
+        <Link to="/" className="text-sm text-muted-foreground flex items-center gap-1"><ArrowRight className="w-4 h-4" /> رجوع</Link>
         <button
-          onClick={() => navigate(-1)}
-          className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-4 transition-fluid"
+          onClick={() => toggle(player)}
+          className="glass px-3 py-1.5 rounded-full flex items-center gap-1.5 text-xs font-semibold"
         >
-          <ArrowRight size={16} /> رجوع
+          <Heart className={`w-3.5 h-3.5 ${fav ? "fill-destructive text-destructive" : ""}`} />
+          {fav ? "في المفضلة" : "أضف للمفضلة"}
         </button>
+      </div>
 
-        {/* Hero */}
-        <div className="relative glass-strong rounded-3xl p-6 mb-6 overflow-hidden animate-in">
-          <div className="absolute -top-20 -right-20 w-64 h-64 bg-primary/20 rounded-full blur-3xl" />
-          <div className="absolute -bottom-20 -left-20 w-48 h-48 bg-accent/15 rounded-full blur-3xl" />
-
-          <div className="relative flex flex-col md:flex-row items-center gap-6">
-            {/* Avatar */}
-            <div className="relative">
-              <div className="w-40 h-40 rounded-full bg-gradient-to-br from-primary/20 to-transparent p-1">
-                <div className="w-full h-full rounded-full bg-card overflow-hidden">
-                  {player.avatarUrl ? (
-                    <img src={player.avatarUrl} alt={player.name} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-6xl font-black text-muted-foreground/30">
-                      {player.name.charAt(0)}
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div className="absolute -bottom-2 left-1/2 -translate-x-1/2">
-                <span className={`rating-chip text-lg px-4 py-1.5 ${player.rating >= 86 ? "rating-chip-elite" : ""}`}>
-                  {player.rating}
-                </span>
-              </div>
-            </div>
-
-            {/* Info */}
-            <div className="flex-1 text-center md:text-right">
-              <div className="flex items-center gap-2 justify-center md:justify-start mb-2">
-                {player.nationImage && <img src={player.nationImage} alt={player.nation} className="w-6 h-4 object-contain" />}
-                <span className="text-xs text-muted-foreground">{player.nation}</span>
-              </div>
-              <h1 className="text-3xl md:text-4xl font-black text-foreground mb-2">{player.name}</h1>
-              <div className="flex items-center gap-2 justify-center md:justify-start mb-4">
-                {player.clubImage && <img src={player.clubImage} alt={player.club} className="w-5 h-5 object-contain" />}
-                <p className="text-sm text-muted-foreground">{player.club} • {player.league}</p>
-              </div>
-
-              {/* Position & alt */}
-              <div className="flex flex-wrap gap-2 justify-center md:justify-start mb-4">
-                <span className="bg-gradient-primary text-primary-foreground text-xs font-black px-3 py-1 rounded-full">
-                  {player.position}
-                </span>
-                {player.alternatePositions.map((pos) => (
-                  <span key={pos} className="glass text-xs font-bold text-foreground px-3 py-1 rounded-full">
-                    {pos}
-                  </span>
-                ))}
-              </div>
-
-              {/* Actions */}
-              <div className="flex gap-2 justify-center md:justify-start">
-                <button
-                  onClick={() => toggle(player)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-sm transition-fluid ${
-                    fav ? "bg-destructive/20 text-destructive" : "glass hover:bg-destructive/10"
-                  }`}
-                >
-                  <Heart size={14} fill={fav ? "currentColor" : "none"} />
-                  {fav ? "في المفضلة" : "أضف للمفضلة"}
-                </button>
-                <button
-                  onClick={() => cmp ? removeCompare(player.id) : addCompare(player)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-sm transition-fluid ${
-                    cmp ? "bg-primary/20 text-primary" : "glass hover:bg-primary/10"
-                  }`}
-                >
-                  <GitCompare size={14} />
-                  {cmp ? "في المقارنة" : "قارن"}
-                </button>
-              </div>
-            </div>
-          </div>
+      {/* Hero */}
+      <div className="card-premium rounded-3xl p-5 mb-6 flex flex-col md:flex-row items-center gap-5">
+        <div className="w-40 h-56 flex items-center justify-center shrink-0">
+          {player.cardUrl && (
+            <img src={player.cardUrl} alt={player.name} className="w-full h-full object-contain drop-shadow-2xl animate-float" />
+          )}
         </div>
-
-        {/* Stats grid */}
-        <div className="grid md:grid-cols-2 gap-4 mb-6">
-          <div className="glass-strong rounded-2xl p-5 animate-in">
-            <h2 className="font-black text-lg text-foreground mb-4">الإحصائيات الرئيسية</h2>
-            <div className="space-y-3">
-              <StatBar label="PAC" value={player.pace} />
-              <StatBar label="SHO" value={player.shooting} />
-              <StatBar label="PAS" value={player.passing} />
-              <StatBar label="DRI" value={player.dribbling} />
-              <StatBar label="DEF" value={player.defending} />
-              <StatBar label="PHY" value={player.physical} />
-            </div>
+        <div className="flex-1 text-center md:text-right">
+          <div className="flex items-center justify-center md:justify-start gap-2 mb-2">
+            <span className="rating-chip rating-chip-elite text-base px-3 py-1">{player.rating}</span>
+            <span className="rating-chip text-base px-3 py-1">{player.position}</span>
           </div>
+          <h1 className="text-3xl font-black mb-1">{player.name}</h1>
+          <p className="text-sm text-muted-foreground mb-3">{player.club} · {player.league} · {player.nation}</p>
 
-          <div className="space-y-4">
-            {/* Attributes */}
-            <div className="glass-strong rounded-2xl p-5 animate-in">
-              <h2 className="font-black text-lg text-foreground mb-4">المواصفات</h2>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="glass rounded-xl p-3 flex items-center gap-3">
-                  <StarIcon size={18} className="text-gold" />
-                  <div>
-                    <p className="text-xs text-muted-foreground">مهارات</p>
-                    <p className="font-black text-foreground">{player.skillMoves}★</p>
-                  </div>
-                </div>
-                <div className="glass rounded-xl p-3 flex items-center gap-3">
-                  <StarIcon size={18} className="text-accent" />
-                  <div>
-                    <p className="text-xs text-muted-foreground">القدم الأضعف</p>
-                    <p className="font-black text-foreground">{player.weakFoot}★</p>
-                  </div>
-                </div>
-                <div className="glass rounded-xl p-3 flex items-center gap-3">
-                  <Ruler size={18} className="text-primary" />
-                  <div>
-                    <p className="text-xs text-muted-foreground">الطول</p>
-                    <p className="font-black text-foreground">{player.height}cm</p>
-                  </div>
-                </div>
-                <div className="glass rounded-xl p-3 flex items-center gap-3">
-                  <Weight size={18} className="text-primary" />
-                  <div>
-                    <p className="text-xs text-muted-foreground">الوزن</p>
-                    <p className="font-black text-foreground">{player.weight}kg</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Play styles */}
-            {(player.playStyles.length > 0 || player.playStylesPlus.length > 0) && (
-              <div className="glass-strong rounded-2xl p-5 animate-in">
-                <h2 className="font-black text-lg text-foreground mb-4">أنماط اللعب</h2>
-                {player.playStylesPlus.length > 0 && (
-                  <div className="mb-3">
-                    <p className="text-xs font-bold text-primary mb-2">PlayStyles+</p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {player.playStylesPlus.map((ps) => (
-                        <span key={ps.name} className="text-xs bg-gradient-primary text-primary-foreground font-bold px-2.5 py-1 rounded-lg flex items-center gap-1">
-                          {ps.icon && <img src={ps.icon} alt="" className="w-3 h-3" />}
-                          {ps.name}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {player.playStyles.length > 0 && (
-                  <div>
-                    <p className="text-xs font-bold text-muted-foreground mb-2">PlayStyles</p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {player.playStyles.map((ps) => (
-                        <span key={ps.name} className="text-xs glass text-foreground px-2.5 py-1 rounded-lg flex items-center gap-1">
-                          {ps.icon && <img src={ps.icon} alt="" className="w-3 h-3" />}
-                          {ps.name}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
+          <div className="grid grid-cols-3 md:grid-cols-6 gap-2 mt-4">
+            {player.isGK ? (
+              <>
+                <MainStat label="DIV" value={parseInt(player.raw["GK Diving"] || "0")} />
+                <MainStat label="HAN" value={parseInt(player.raw["GK Handling"] || "0")} />
+                <MainStat label="KIC" value={parseInt(player.raw["GK Kicking"] || "0")} />
+                <MainStat label="REF" value={parseInt(player.raw["GK Reflexes"] || "0")} />
+                <MainStat label="SPD" value={player.pace} />
+                <MainStat label="POS" value={parseInt(player.raw["GK Positioning"] || "0")} />
+              </>
+            ) : (
+              <>
+                <MainStat label="PAC" value={player.pace} />
+                <MainStat label="SHO" value={player.shooting} />
+                <MainStat label="PAS" value={player.passing} />
+                <MainStat label="DRI" value={player.dribbling} />
+                <MainStat label="DEF" value={player.defending} />
+                <MainStat label="PHY" value={player.physical} />
+              </>
             )}
           </div>
         </div>
       </div>
-    </>
+
+      <div className="grid md:grid-cols-3 gap-4 mb-6">
+        <div className="glass rounded-2xl p-4">
+          <h3 className="text-sm font-black mb-2">معلومات</h3>
+          <Meta label="العمر" value={player.age} />
+          <Meta label="الطول" value={player.height} />
+          <Meta label="الوزن" value={player.weight} />
+          <Meta label="القدم" value={player.preferredFoot} />
+          <Meta label="القدم الضعيفة" value={`${player.weakFoot}★`} />
+          <Meta label="المهارات" value={`${player.skillMoves}★`} />
+          <Meta label="المراكز البديلة" value={player.altPositions.join(" · ") || "—"} />
+        </div>
+
+        <div className="glass rounded-2xl p-4 md:col-span-2">
+          <h3 className="text-sm font-black mb-2">أساليب اللعب</h3>
+          {player.playStyles.length ? (
+            <div className="flex flex-wrap gap-2">
+              {player.playStyles.map((ps) => {
+                const plus = ps.endsWith("+");
+                return (
+                  <span
+                    key={ps}
+                    className={`px-3 py-1.5 rounded-full text-xs font-bold ${plus ? "bg-gradient-primary text-primary-foreground" : "glass"}`}
+                  >
+                    {ps}
+                  </span>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">لا توجد أساليب لعب مسجلة.</p>
+          )}
+          {player.eaUrl && (
+            <a href={player.eaUrl} target="_blank" rel="noreferrer" className="mt-4 inline-flex items-center gap-1 text-xs text-primary">
+              مصدر EA <ExternalLink className="w-3 h-3" />
+            </a>
+          )}
+        </div>
+      </div>
+
+      <div className="grid md:grid-cols-2 gap-4">
+        {groups.map((g) => (
+          <div key={g.title} className="glass rounded-2xl p-4">
+            <h3 className="text-sm font-black mb-3">{g.title}</h3>
+            <div className="grid gap-2">
+              {g.stats.map((s) => <StatBar key={s.key} label={s.label} value={s.value} />)}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 };
 

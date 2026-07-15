@@ -1,90 +1,59 @@
+import { Link } from "react-router-dom";
+import { Heart } from "lucide-react";
 import type { Player } from "@/types/player";
-import { TrendingUp, TrendingDown } from "lucide-react";
+import { useFavorites } from "@/hooks/useFavorites";
 
-const formatPrice = (price: number): string => {
-  if (price >= 1000000) return `${(price / 1000000).toFixed(1)}M`;
-  if (price >= 1000) return `${(price / 1000).toFixed(0)}K`;
-  return price.toString();
-};
-
-interface PlayerCardProps {
+interface Props {
   player: Player;
-  onClick?: () => void;
+  size?: "sm" | "md";
+  showFavorite?: boolean;
 }
 
-const StatRow = ({ label, value }: { label: string; value: number }) => {
-  const color = value >= 90 ? "text-accent" : value >= 75 ? "text-primary" : "text-foreground/70";
-  return (
-    <div className="flex justify-between items-center text-xs">
-      <span className="font-semibold opacity-80">{label}</span>
-      <span className={`font-bold ${color}`}>{value}</span>
-    </div>
-  );
-};
-
-const PlayerCard = ({ player, onClick }: PlayerCardProps) => {
-  const cardClass = player.rating >= 86 ? "card-toty" : player.rating >= 80 ? "card-gold" : "card-totw";
+const PlayerCard = ({ player, size = "md", showFavorite = true }: Props) => {
+  const { isFavorite, toggle } = useFavorites();
+  const fav = isFavorite(player.id);
 
   return (
-    <div
-      onClick={onClick}
-      className={`relative group cursor-pointer rounded-lg overflow-hidden transition-all duration-300 hover:scale-105 hover:glow-gold animate-slide-up ${cardClass}`}
+    <Link
+      to={`/player/${player.id}`}
+      className="group card-premium relative flex flex-col items-center rounded-2xl p-3 overflow-hidden animate-in"
     >
-      <div className="p-4 flex flex-col items-center relative">
-        {/* Rating & Position */}
-        <div className="absolute top-3 left-3 flex flex-col items-center">
-          <span className="text-2xl font-heading font-bold text-primary-foreground drop-shadow-lg">
-            {player.rating}
-          </span>
-          <span className="text-[10px] font-bold text-primary-foreground/80 tracking-wider">
-            {player.position}
-          </span>
-        </div>
+      {showFavorite && (
+        <button
+          type="button"
+          onClick={(e) => { e.preventDefault(); toggle(player); }}
+          className="absolute top-2 left-2 z-10 p-1.5 rounded-full glass-subtle hover:scale-110 transition-fluid"
+          aria-label={fav ? "Remove from favorites" : "Add to favorites"}
+        >
+          <Heart className={`w-3.5 h-3.5 ${fav ? "fill-destructive text-destructive" : "text-foreground/70"}`} />
+        </button>
+      )}
 
-        {/* Nation flag */}
-        <div className="absolute top-3 right-3">
-          {player.nationImage ? (
-            <img src={player.nationImage} alt={player.nation} className="w-6 h-4 object-contain" />
-          ) : (
-            <span className="text-sm">{player.nation}</span>
-          )}
-        </div>
-
-        {/* Player avatar */}
-        <div className="w-20 h-20 rounded-full bg-black/20 flex items-center justify-center mt-2 mb-2 overflow-hidden">
-          {player.avatarUrl ? (
-            <img src={player.avatarUrl} alt={player.name} className="w-full h-full object-cover" />
-          ) : (
-            <span className="text-4xl font-heading font-bold text-primary-foreground/40">
-              {player.name.charAt(0)}
-            </span>
-          )}
-        </div>
-
-        {/* Name */}
-        <h3 className="font-heading font-bold text-sm text-primary-foreground tracking-wide text-center uppercase truncate w-full">
-          {player.name}
-        </h3>
-
-        {/* Club */}
-        <div className="flex items-center gap-1 mb-2">
-          {player.clubImage && (
-            <img src={player.clubImage} alt={player.club} className="w-4 h-4 object-contain" />
-          )}
-          <p className="text-[10px] text-primary-foreground/60">{player.club}</p>
-        </div>
-
-        {/* Stats */}
-        <div className="w-full grid grid-cols-2 gap-x-3 gap-y-0.5 text-primary-foreground">
-          <StatRow label="PAC" value={player.pace} />
-          <StatRow label="SHO" value={player.shooting} />
-          <StatRow label="PAS" value={player.passing} />
-          <StatRow label="DRI" value={player.dribbling} />
-          <StatRow label="DEF" value={player.defending} />
-          <StatRow label="PHY" value={player.physical} />
-        </div>
+      <div className={`relative ${size === "sm" ? "w-24 h-32" : "w-32 h-44"} flex items-center justify-center`}>
+        {player.cardUrl ? (
+          <img
+            src={player.cardUrl}
+            alt={player.name}
+            loading="lazy"
+            className="w-full h-full object-contain drop-shadow-[0_10px_20px_rgba(0,0,0,0.6)] group-hover:scale-105 transition-fluid"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center rounded-lg bg-muted text-4xl font-black text-muted-foreground">
+            {player.name.charAt(0)}
+          </div>
+        )}
       </div>
-    </div>
+
+      <div className="mt-2 w-full flex items-center justify-between gap-2">
+        <div className="min-w-0">
+          <p className="font-bold text-sm truncate">{player.name}</p>
+          <p className="text-[10px] text-muted-foreground truncate">{player.club}</p>
+        </div>
+        <span className={`rating-chip ${player.rating >= 87 ? "rating-chip-elite" : ""}`}>
+          {player.rating} {player.position}
+        </span>
+      </div>
+    </Link>
   );
 };
 

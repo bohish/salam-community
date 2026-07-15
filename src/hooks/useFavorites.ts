@@ -47,7 +47,7 @@ export function useFavorites() {
         player_name: player.name,
         player_rating: player.rating,
         player_position: player.position,
-        player_avatar_url: player.avatarUrl,
+        player_avatar_url: player.cardUrl,
         player_nation: player.nation,
         player_club: player.club,
       });

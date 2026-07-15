@@ -1,111 +1,92 @@
-import { useState, useEffect, useMemo } from "react";
-import { Search, X } from "lucide-react";
-import { usePlayers } from "@/hooks/usePlayers";
-import PlayerDetail from "@/components/PlayerDetail";
-import type { Player } from "@/types/player";
+import { useEffect, useMemo, useState } from "react";
+import { Helmet } from "react-helmet-async";
+import { Search, Loader2, X } from "lucide-react";
+import { usePlayerById, usePlayerByName, useTopRanked } from "@/hooks/useFc26";
+import PlayerListRow from "@/components/PlayerListRow";
+
+function useDebounced<T>(value: T, delay = 350): T {
+  const [v, setV] = useState(value);
+  useEffect(() => {
+    const t = setTimeout(() => setV(value), delay);
+    return () => clearTimeout(t);
+  }, [value, delay]);
+  return v;
+}
 
 const SearchPage = () => {
-  const [query, setQuery] = useState("");
-  const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
+  const [q, setQ] = useState("");
+  const debounced = useDebounced(q, 400);
+  const trimmed = debounced.trim();
+  const isNumeric = /^\d+$/.test(trimmed);
 
-  // Fetch a large batch to search from
-  const { data, isLoading } = usePlayers({ limit: 100, offset: 0 });
-  const players = data?.players || [];
+  const nameQuery = usePlayerByName(isNumeric ? "" : trimmed);
+  const idQuery = usePlayerById(isNumeric ? trimmed : null);
+  const top = useTopRanked(30);
 
-  const results = useMemo(() => {
-    if (!query.trim()) return [];
-    const q = query.toLowerCase();
-    return players.filter(
-      p => p.name.toLowerCase().includes(q) || p.club.toLowerCase().includes(q) || p.nation.toLowerCase().includes(q)
-    ).slice(0, 20);
-  }, [query, players]);
+  const suggestions = useMemo(() => {
+    if (!top.data) return [];
+    if (!q.trim()) return top.data;
+    const s = q.trim().toLowerCase();
+    return top.data.filter(p =>
+      p.name.toLowerCase().includes(s) ||
+      p.club.toLowerCase().includes(s) ||
+      p.nation.toLowerCase().includes(s)
+    );
+  }, [q, top.data]);
+
+  const remotePlayer = isNumeric ? idQuery.data : nameQuery.data;
+  const loading = (isNumeric ? idQuery.isFetching : nameQuery.isFetching) && trimmed.length >= 2;
+  const showRemote = trimmed.length >= 2 && remotePlayer &&
+    !suggestions.some(s => s.id === remotePlayer.id);
 
   return (
-    <div className="container mx-auto px-4 py-4" dir="rtl">
-      {/* Search input */}
-      <div className="relative mb-6">
-        <Search size={18} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+    <div className="container mx-auto px-4 py-4 max-w-3xl">
+      <Helmet>
+        <title>بحث اللاعبين — FUTHUB FC 26</title>
+        <meta name="description" content="ابحث عن أي لاعب في EA SPORTS FC 26 بالاسم أو رقم ID." />
+      </Helmet>
+
+      <div className="glass-strong rounded-2xl flex items-center gap-2 px-4 py-3 mb-4 sticky top-2 z-20">
+        <Search className="w-4 h-4 text-primary" />
         <input
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="ابحث عن لاعب، نادي، أو جنسية..."
-          className="w-full bg-card border border-border rounded-xl pr-10 pl-10 py-3.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30"
           autoFocus
+          type="search"
+          inputMode="search"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="اسم اللاعب أو Player ID..."
+          className="flex-1 bg-transparent outline-none text-sm placeholder:text-muted-foreground"
         />
-        {query && (
-          <button
-            onClick={() => setQuery("")}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-          >
-            <X size={16} />
+        {loading && <Loader2 className="w-4 h-4 animate-spin text-primary" />}
+        {q && !loading && (
+          <button onClick={() => setQ("")} aria-label="مسح" className="text-muted-foreground">
+            <X className="w-4 h-4" />
           </button>
         )}
       </div>
 
-      {/* Loading */}
-      {isLoading && (
-        <div className="flex items-center justify-center py-16">
-          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      {/* Remote result banner */}
+      {showRemote && remotePlayer && (
+        <div className="mb-4">
+          <p className="text-xs text-muted-foreground mb-2 px-1">نتيجة مطابقة من قاعدة البيانات</p>
+          <PlayerListRow player={remotePlayer} />
         </div>
       )}
 
-      {/* Results */}
-      {!isLoading && query && results.length > 0 && (
-        <div className="space-y-1">
-          {results.map((player) => (
-            <button
-              key={player.id}
-              onClick={() => setSelectedPlayer(player)}
-              className="w-full flex items-center gap-3 bg-card border border-border rounded-lg p-3 hover:bg-secondary/50 transition-colors text-right"
-            >
-              <div className="w-12 h-12 rounded-lg overflow-hidden bg-secondary shrink-0">
-                {player.avatarUrl ? (
-                  <img src={player.avatarUrl} alt="" className="w-full h-full object-cover" loading="lazy" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-sm font-bold text-muted-foreground/30">
-                    {player.name.charAt(0)}
-                  </div>
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-semibold text-foreground text-sm">{player.name}</p>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <span>{player.position}</span>
-                  <span>•</span>
-                  <span>{player.club}</span>
-                  <span>•</span>
-                  <span>{player.league}</span>
-                </div>
-              </div>
-              <span className={`text-lg font-extrabold ${player.rating >= 86 ? "text-primary" : "text-gold"}`}>
-                {player.rating}
-              </span>
-            </button>
-          ))}
-        </div>
+      {trimmed.length >= 2 && !loading && !remotePlayer && suggestions.length === 0 && (
+        <p className="text-center text-sm text-muted-foreground py-16">لا توجد نتائج تطابق "{trimmed}".</p>
       )}
 
-      {/* No results */}
-      {!isLoading && query && results.length === 0 && (
-        <div className="text-center py-16">
-          <p className="text-2xl mb-2">🔍</p>
-          <p className="text-muted-foreground text-sm">ما لقينا نتائج لـ "{query}"</p>
-        </div>
-      )}
+      <p className="text-xs text-muted-foreground mb-2 px-1">
+        {q ? `${suggestions.length} نتيجة ضمن أعلى التقييمات` : "أعلى اللاعبين تقييماً"}
+      </p>
 
-      {/* Empty state */}
-      {!query && !isLoading && (
-        <div className="text-center py-16">
-          <p className="text-3xl mb-3">🔍</p>
-          <p className="text-muted-foreground text-sm">ابحث عن أي لاعب في FC 25</p>
-          <p className="text-muted-foreground text-xs mt-1">{data?.total?.toLocaleString() || 0} لاعب متوفر</p>
-        </div>
-      )}
-
-      {selectedPlayer && (
-        <PlayerDetail player={selectedPlayer} onClose={() => setSelectedPlayer(null)} />
-      )}
+      <div className="grid gap-2">
+        {top.isLoading && Array.from({ length: 10 }).map((_, i) => (
+          <div key={i} className="h-16 rounded-xl animate-shimmer" />
+        ))}
+        {suggestions.map((p) => <PlayerListRow key={p.id} player={p} />)}
+      </div>
     </div>
   );
 };
