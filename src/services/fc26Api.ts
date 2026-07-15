@@ -8,19 +8,30 @@ class ApiError extends Error {
 
 async function req<T>(path: string, signal?: AbortSignal): Promise<T> {
   const res = await fetch(`${BASE}${path}`, { signal });
-  if (!res.ok) {
-    throw new ApiError(`Request failed: ${res.status} ${res.statusText}`, res.status);
-  }
+  if (!res.ok) throw new ApiError(`Request failed: ${res.status}`, res.status);
   const ct = res.headers.get("content-type") || "";
-  if (!ct.includes("application/json")) {
-    throw new ApiError("Unexpected response format");
-  }
+  if (!ct.includes("application/json")) throw new ApiError("Unexpected response format");
   return res.json() as Promise<T>;
 }
 
 const toPlayer = (raw: RawPlayer): Player => normalizePlayer(raw);
 const toPlayers = (arr: RawPlayer[]): Player[] =>
   (Array.isArray(arr) ? arr : []).map(toPlayer).sort((a, b) => b.rating - a.rating);
+
+/** Run tasks with limited concurrency to avoid hammering the upstream API. */
+async function pool<T>(items: number[], limit: number, worker: (n: number) => Promise<T | null>): Promise<T[]> {
+  const results: (T | null)[] = new Array(items.length);
+  let cursor = 0;
+  const runners = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (cursor < items.length) {
+      const i = cursor++;
+      try { results[i] = await worker(items[i]); }
+      catch { results[i] = null; }
+    }
+  });
+  await Promise.all(runners);
+  return results.filter((x): x is T => x != null);
+}
 
 export const fc26Api = {
   async getById(id: number | string, signal?: AbortSignal): Promise<Player> {
@@ -40,38 +51,29 @@ export const fc26Api = {
       throw e;
     }
   },
+  /** Top N players by rank (batched with limited concurrency). */
   async getTopRanked(count: number, signal?: AbortSignal): Promise<Player[]> {
     const ranks = Array.from({ length: count }, (_, i) => i + 1);
-    const results = await Promise.all(
-      ranks.map(r => req<RawPlayer>(`/player/rank/${r}`, signal).then(toPlayer).catch(() => null))
-    );
-    return results.filter((p): p is Player => p !== null);
+    return pool(ranks, 12, (r) => req<RawPlayer>(`/player/rank/${r}`, signal).then(toPlayer));
   },
   async getRandom(gender?: "M" | "F", signal?: AbortSignal): Promise<Player> {
     const raw = await req<RawPlayer>(gender ? `/random/${gender}` : "/random", signal);
     return toPlayer(raw);
   },
   async getRandomBatch(count: number, gender?: "M" | "F", signal?: AbortSignal): Promise<Player[]> {
-    const results = await Promise.all(
-      Array.from({ length: count }, () =>
-        req<RawPlayer>(gender ? `/random/${gender}` : "/random", signal).then(toPlayer).catch(() => null)
-      )
+    const results = await pool(
+      Array.from({ length: count }, () => 0),
+      6,
+      () => req<RawPlayer>(gender ? `/random/${gender}` : "/random", signal).then(toPlayer)
     );
-    // Dedupe by id
     const seen = new Set<number>();
-    return results.filter((p): p is Player => {
-      if (!p || seen.has(p.id)) return false;
-      seen.add(p.id);
-      return true;
-    });
+    return results.filter((p) => (seen.has(p.id) ? false : (seen.add(p.id), true)));
   },
   async getByTeam(team: string, signal?: AbortSignal): Promise<Player[]> {
-    const arr = await req<RawPlayer[]>(`/team/${encodeURIComponent(team)}`, signal);
-    return toPlayers(arr);
+    return toPlayers(await req<RawPlayer[]>(`/team/${encodeURIComponent(team)}`, signal));
   },
   async getByNation(nation: string, signal?: AbortSignal): Promise<Player[]> {
-    const arr = await req<RawPlayer[]>(`/nation/${encodeURIComponent(nation)}`, signal);
-    return toPlayers(arr);
+    return toPlayers(await req<RawPlayer[]>(`/nation/${encodeURIComponent(nation)}`, signal));
   },
 };
 
