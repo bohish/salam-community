@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
@@ -8,18 +8,28 @@ import { toast } from "sonner";
 import { Mail, Lock, User as UserIcon, ArrowRight } from "lucide-react";
 import { useEffect } from "react";
 
+// Only allow same-origin relative paths as the post-auth redirect.
+function safeNext(raw: string | null): string {
+  if (!raw) return "/";
+  if (!raw.startsWith("/") || raw.startsWith("//")) return "/";
+  return raw;
+}
+
 const AuthPage = () => {
   const navigate = useNavigate();
+  const [params] = useSearchParams();
   const { user } = useAuth();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
+  const next = safeNext(params.get("next"));
+  const returnUrl = window.location.origin + next;
 
   useEffect(() => {
-    if (user) navigate("/");
-  }, [user, navigate]);
+    if (user) navigate(next, { replace: true });
+  }, [user, navigate, next]);
 
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,7 +40,7 @@ const AuthPage = () => {
           email,
           password,
           options: {
-            emailRedirectTo: window.location.origin,
+            emailRedirectTo: returnUrl,
             data: { full_name: name },
           },
         });
@@ -40,7 +50,7 @@ const AuthPage = () => {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         toast.success("مرحباً بعودتك!");
-        navigate("/");
+        navigate(next, { replace: true });
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "فشلت العملية");
@@ -52,7 +62,7 @@ const AuthPage = () => {
   const handleGoogle = async () => {
     setLoading(true);
     const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
+      redirect_uri: returnUrl,
     });
     if (result.error) {
       toast.error("فشل الدخول عبر Google");
@@ -60,7 +70,7 @@ const AuthPage = () => {
       return;
     }
     if (result.redirected) return;
-    navigate("/");
+    navigate(next, { replace: true });
   };
 
   return (
