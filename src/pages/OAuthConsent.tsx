@@ -35,10 +35,12 @@ export default function OAuthConsent() {
         navigate(`/auth?next=${encodeURIComponent(next)}`, { replace: true });
         return;
       }
-      const { data, error } = await sb.auth.oauth.getAuthorizationDetails(authorizationId);
+      const resp = await sb.auth.oauth.getAuthorizationDetails(authorizationId);
+      const data = resp.data as any;
+      const err = resp.error as any;
       if (!active) return;
-      if (error) {
-        setError(error.message || "تعذر جلب تفاصيل التفويض");
+      if (err) {
+        setError(err.message || "تعذر جلب تفاصيل التفويض");
         return;
       }
       const immediate = data?.redirect_url ?? data?.redirect_to;
@@ -55,12 +57,14 @@ export default function OAuthConsent() {
 
   async function decide(approve: boolean) {
     setBusy(true);
-    const { data, error } = approve
+    const resp = approve
       ? await sb.auth.oauth.approveAuthorization(authorizationId)
       : await sb.auth.oauth.denyAuthorization(authorizationId);
-    if (error) {
+    const data = resp.data as any;
+    const err = resp.error as any;
+    if (err) {
       setBusy(false);
-      setError(error.message || "فشلت العملية");
+      setError(err.message || "فشلت العملية");
       return;
     }
     const target = data?.redirect_url ?? data?.redirect_to;

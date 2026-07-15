@@ -19,6 +19,7 @@ import EntityPlayersPage from "@/pages/EntityPlayersPage";
 import StatsIndexPage from "@/pages/StatsIndexPage";
 import StatsPage from "@/pages/StatsPage";
 import EventsPage from "@/pages/EventsPage";
+import OAuthConsent from "@/pages/OAuthConsent";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -58,6 +59,7 @@ const App = () => (
               <Route path="/nation/:name" element={<EntityPlayersPage mode="nation" />} />
               <Route path="/favorites" element={<FavoritesPage />} />
               <Route path="/auth" element={<AuthPage />} />
+              <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </main>
