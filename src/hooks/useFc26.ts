@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { fc26Api } from "@/services/fc26Api";
 
 const HOUR = 60 * 60 * 1000;
+const DAY = 24 * HOUR;
 
 export const usePlayerById = (id?: number | string | null) =>
   useQuery({
@@ -25,6 +26,15 @@ export const useTopRanked = (count = 24) =>
     queryKey: ["fc26", "top", count],
     queryFn: ({ signal }) => fc26Api.getTopRanked(count, signal),
     staleTime: HOUR,
+  });
+
+/** Shared cross-page player pool (top N). One fetch shared by all pages that need to filter/sort. */
+export const usePlayerPool = (size = 150) =>
+  useQuery({
+    queryKey: ["fc26", "pool", size],
+    queryFn: ({ signal }) => fc26Api.getTopRanked(size, signal),
+    staleTime: DAY,
+    gcTime: DAY,
   });
 
 export const useRandomBatch = (count = 12, key = "featured") =>

@@ -1,92 +1,64 @@
-import { useEffect, useMemo, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { Search, Loader2, X } from "lucide-react";
-import { usePlayerById, usePlayerByName, useTopRanked } from "@/hooks/useFc26";
+import { useMemo, useEffect, useState } from "react";
+import { usePlayerByName, usePlayerPool } from "@/hooks/useFc26";
 import PlayerListRow from "@/components/PlayerListRow";
-
-function useDebounced<T>(value: T, delay = 350): T {
-  const [v, setV] = useState(value);
-  useEffect(() => {
-    const t = setTimeout(() => setV(value), delay);
-    return () => clearTimeout(t);
-  }, [value, delay]);
-  return v;
-}
+import SearchSuggestions from "@/components/SearchSuggestions";
+import Breadcrumbs from "@/components/Breadcrumbs";
+import { PlayerRowSkeleton } from "@/components/Skeleton";
 
 const SearchPage = () => {
-  const [q, setQ] = useState("");
-  const debounced = useDebounced(q, 400);
-  const trimmed = debounced.trim();
+  const [params] = useSearchParams();
+  const initial = params.get("q") ?? "";
+  const [q, setQ] = useState(initial);
+  useEffect(() => setQ(params.get("q") ?? ""), [params]);
+
+  const pool = usePlayerPool(150);
+  const trimmed = q.trim();
   const isNumeric = /^\d+$/.test(trimmed);
+  const remote = usePlayerByName(!isNumeric && trimmed.length >= 3 ? trimmed : "");
 
-  const nameQuery = usePlayerByName(isNumeric ? "" : trimmed);
-  const idQuery = usePlayerById(isNumeric ? trimmed : null);
-  const top = useTopRanked(30);
-
-  const suggestions = useMemo(() => {
-    if (!top.data) return [];
-    if (!q.trim()) return top.data;
-    const s = q.trim().toLowerCase();
-    return top.data.filter(p =>
-      p.name.toLowerCase().includes(s) ||
-      p.club.toLowerCase().includes(s) ||
-      p.nation.toLowerCase().includes(s)
+  const results = useMemo(() => {
+    const list = pool.data ?? [];
+    if (!trimmed) return list;
+    const s = trimmed.toLowerCase();
+    const local = list.filter(
+      (p) => p.name.toLowerCase().includes(s) || p.club.toLowerCase().includes(s) || p.nation.toLowerCase().includes(s)
     );
-  }, [q, top.data]);
-
-  const remotePlayer = isNumeric ? idQuery.data : nameQuery.data;
-  const loading = (isNumeric ? idQuery.isFetching : nameQuery.isFetching) && trimmed.length >= 2;
-  const showRemote = trimmed.length >= 2 && remotePlayer &&
-    !suggestions.some(s => s.id === remotePlayer.id);
+    if (remote.data && !local.find((p) => p.id === remote.data!.id)) return [remote.data, ...local];
+    return local;
+  }, [pool.data, remote.data, trimmed]);
 
   return (
     <div className="container mx-auto px-4 py-4 max-w-3xl">
       <Helmet>
-        <title>بحث اللاعبين — FUTHUB FC 26</title>
-        <meta name="description" content="ابحث عن أي لاعب في EA SPORTS FC 26 بالاسم أو رقم ID." />
+        <title>{trimmed ? `بحث "${trimmed}"` : "البحث"} — FUTHUB FC 26</title>
+        <meta name="description" content="ابحث عن أي لاعب في EA SPORTS FC 26 بالاسم أو رقم ID مع اقتراحات فورية." />
       </Helmet>
 
-      <div className="glass-strong rounded-2xl flex items-center gap-2 px-4 py-3 mb-4 sticky top-2 z-20">
-        <Search className="w-4 h-4 text-primary" />
-        <input
-          autoFocus
-          type="search"
-          inputMode="search"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="اسم اللاعب أو Player ID..."
-          className="flex-1 bg-transparent outline-none text-sm placeholder:text-muted-foreground"
-        />
-        {loading && <Loader2 className="w-4 h-4 animate-spin text-primary" />}
-        {q && !loading && (
-          <button onClick={() => setQ("")} aria-label="مسح" className="text-muted-foreground">
-            <X className="w-4 h-4" />
-          </button>
-        )}
+      <Breadcrumbs items={[{ label: "البحث" }]} />
+
+      <div className="sticky top-2 z-30 mb-4">
+        <SearchSuggestions variant="hero" autoFocus />
       </div>
 
-      {/* Remote result banner */}
-      {showRemote && remotePlayer && (
-        <div className="mb-4">
-          <p className="text-xs text-muted-foreground mb-2 px-1">نتيجة مطابقة من قاعدة البيانات</p>
-          <PlayerListRow player={remotePlayer} />
-        </div>
+      {trimmed && (
+        <p className="text-xs text-muted-foreground mb-2 px-1">
+          {results.length} نتيجة {trimmed && `لـ "${trimmed}"`}
+        </p>
       )}
-
-      {trimmed.length >= 2 && !loading && !remotePlayer && suggestions.length === 0 && (
-        <p className="text-center text-sm text-muted-foreground py-16">لا توجد نتائج تطابق "{trimmed}".</p>
-      )}
-
-      <p className="text-xs text-muted-foreground mb-2 px-1">
-        {q ? `${suggestions.length} نتيجة ضمن أعلى التقييمات` : "أعلى اللاعبين تقييماً"}
-      </p>
 
       <div className="grid gap-2">
-        {top.isLoading && Array.from({ length: 10 }).map((_, i) => (
-          <div key={i} className="h-16 rounded-xl animate-shimmer" />
-        ))}
-        {suggestions.map((p) => <PlayerListRow key={p.id} player={p} />)}
+        {pool.isLoading && Array.from({ length: 10 }).map((_, i) => <PlayerRowSkeleton key={i} />)}
+        {results.slice(0, 60).map((p) => <PlayerListRow key={p.id} player={p} />)}
       </div>
+
+      {!pool.isLoading && trimmed && results.length === 0 && (
+        <div className="text-center py-16">
+          <p className="text-sm text-muted-foreground mb-2">لا توجد نتائج لـ "{trimmed}".</p>
+          <Link to="/players" className="text-primary text-xs">جرّب الفلاتر المتقدمة →</Link>
+        </div>
+      )}
     </div>
   );
 };

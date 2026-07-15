@@ -1,9 +1,10 @@
 import { Link } from "react-router-dom";
 import type { Player } from "@/types/player";
+import { playerSlug } from "@/lib/slug";
 
 const PlayerListRow = ({ player }: { player: Player }) => (
   <Link
-    to={`/player/${player.id}`}
+    to={`/player/${playerSlug(player.name, player.id)}`}
     className="glass hover:glass-strong flex items-center gap-3 p-2.5 rounded-xl transition-fluid"
   >
     <div className="w-12 h-16 flex-shrink-0 flex items-center justify-center">

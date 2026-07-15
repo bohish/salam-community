@@ -1,82 +1,105 @@
 import { useMemo, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { ArrowRight } from "lucide-react";
+import { useQueries } from "@tanstack/react-query";
+import { fc26Api } from "@/services/fc26Api";
 import { useTeamPlayers, useNationPlayers } from "@/hooks/useFc26";
 import PlayerListRow from "@/components/PlayerListRow";
-import { CLUBS_BY_LEAGUE } from "@/data/catalog";
+import AdvancedFilters, { DEFAULT_FILTERS, applyFilters, type FiltersState } from "@/components/AdvancedFilters";
+import Breadcrumbs from "@/components/Breadcrumbs";
+import { PlayerRowSkeleton } from "@/components/Skeleton";
+import { CLUBS_BY_LEAGUE, TOP_CLUBS, TOP_LEAGUES, TOP_NATIONS } from "@/data/catalog";
+import type { Player } from "@/types/player";
 
 type Mode = "club" | "nation" | "league";
 
+const decodeFromSlug = (mode: Mode, slug: string): string => {
+  const list = mode === "club" ? TOP_CLUBS : mode === "league" ? TOP_LEAGUES : TOP_NATIONS;
+  const cleaned = decodeURIComponent(slug).toLowerCase();
+  // Match against catalog by slugified name, else fall back to decoded.
+  const found = list.find((c) => c.name.toLowerCase() === cleaned
+    || c.name.toLowerCase().replace(/\s+/g, "-") === cleaned);
+  return found ? found.name : decodeURIComponent(slug);
+};
+
 const EntityPlayersPage = ({ mode }: { mode: Mode }) => {
   const { name = "" } = useParams();
-  const [sort, setSort] = useState<"rating" | "name">("rating");
-  const decoded = decodeURIComponent(name);
+  const decoded = decodeFromSlug(mode, name);
 
   const team = useTeamPlayers(mode === "club" ? decoded : undefined);
   const nation = useNationPlayers(mode === "nation" ? decoded : undefined);
 
-  // League: fetch each curated club and merge
   const leagueClubs = mode === "league" ? (CLUBS_BY_LEAGUE[decoded] ?? []) : [];
-  const leagueQueries = leagueClubs.map((c) => useTeamPlayers(mode === "league" ? c : undefined));
+  const leagueQueries = useQueries({
+    queries: leagueClubs.map((c) => ({
+      queryKey: ["fc26", "team", c],
+      queryFn: ({ signal }: { signal?: AbortSignal }) => fc26Api.getByTeam(c, signal),
+      staleTime: 60 * 60 * 1000,
+    })),
+  });
 
-  const players = useMemo(() => {
-    let list = mode === "club" ? team.data ?? []
+  const basePlayers = useMemo(() => {
+    let list: Player[] = mode === "club" ? team.data ?? []
       : mode === "nation" ? nation.data ?? []
       : leagueQueries.flatMap((q) => q.data ?? []);
-    // Dedupe
     const seen = new Set<number>();
-    list = list.filter((p) => (seen.has(p.id) ? false : (seen.add(p.id), true)));
-    if (sort === "rating") list = [...list].sort((a, b) => b.rating - a.rating);
-    else list = [...list].sort((a, b) => a.name.localeCompare(b.name));
-    return list;
+    return list.filter((p) => (seen.has(p.id) ? false : (seen.add(p.id), true)));
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [team.data, nation.data, sort, mode, ...leagueQueries.map((q) => q.data)]);
+  }, [team.data, nation.data, mode, ...leagueQueries.map((q) => q.data)]);
+
+  const [filters, setFilters] = useState<FiltersState>(DEFAULT_FILTERS);
+  const [open, setOpen] = useState(false);
+
+  const results = useMemo(() => applyFilters(basePlayers, filters), [basePlayers, filters]);
 
   const isLoading = mode === "club" ? team.isLoading
     : mode === "nation" ? nation.isLoading
     : leagueQueries.some((q) => q.isLoading);
 
-  const title = mode === "club" ? decoded : mode === "nation" ? decoded : decoded;
   const parentPath = mode === "club" ? "/clubs" : mode === "nation" ? "/nations" : "/leagues";
   const parentLabel = mode === "club" ? "الأندية" : mode === "nation" ? "المنتخبات" : "الدوريات";
 
   return (
     <div className="container mx-auto px-4 py-4 max-w-3xl">
       <Helmet>
-        <title>{title} — FUTHUB FC 26</title>
-        <meta name="description" content={`جميع لاعبي ${title} في EA SPORTS FC 26 مع الإحصائيات.`} />
+        <title>{decoded} — FUTHUB FC 26</title>
+        <meta name="description" content={`جميع لاعبي ${decoded} في EA SPORTS FC 26 مع الإحصائيات والفلاتر.`} />
+        <link rel="canonical" href={`${parentPath.replace("s", "")}/${encodeURIComponent(name)}`} />
       </Helmet>
 
-      <Link to={parentPath} className="text-sm text-muted-foreground flex items-center gap-1 mb-3">
-        <ArrowRight className="w-4 h-4" /> {parentLabel}
-      </Link>
+      <Breadcrumbs items={[
+        { label: parentLabel, href: parentPath },
+        { label: decoded },
+      ]} />
 
-      <div className="card-premium rounded-2xl p-4 mb-4 flex items-center justify-between">
-        <div>
-          <p className="text-xs text-muted-foreground uppercase tracking-widest">{parentLabel.slice(0, -1)}</p>
-          <h1 className="text-2xl font-black">{title}</h1>
-          <p className="text-xs text-muted-foreground mt-1">{isLoading ? "جاري التحميل..." : `${players.length} لاعب`}</p>
-        </div>
-        <select
-          value={sort}
-          onChange={(e) => setSort(e.target.value as any)}
-          className="glass rounded-lg px-3 py-2 text-xs bg-transparent"
-        >
-          <option value="rating">الأعلى تقييماً</option>
-          <option value="name">حسب الاسم</option>
-        </select>
+      <div className="card-premium rounded-2xl p-4 mb-4">
+        <p className="text-xs text-muted-foreground uppercase tracking-widest">{parentLabel.slice(0, -2)}</p>
+        <h1 className="text-2xl font-black">{decoded}</h1>
+        <p className="text-xs text-muted-foreground mt-1">
+          {isLoading ? "جاري التحميل..." : `${results.length} من ${basePlayers.length} لاعب`}
+        </p>
       </div>
 
-      {isLoading && Array.from({ length: 8 }).map((_, i) => <div key={i} className="h-16 rounded-xl animate-shimmer mb-2" />)}
+      <AdvancedFilters
+        value={filters}
+        onChange={setFilters}
+        onReset={() => setFilters(DEFAULT_FILTERS)}
+        open={open}
+        onToggle={() => setOpen(!open)}
+      />
 
       <div className="grid gap-2">
-        {players.map((p) => <PlayerListRow key={p.id} player={p} />)}
+        {isLoading && Array.from({ length: 6 }).map((_, i) => <PlayerRowSkeleton key={i} />)}
+        {results.map((p) => <PlayerListRow key={p.id} player={p} />)}
       </div>
 
-      {!isLoading && players.length === 0 && (
-        <p className="text-center text-sm text-muted-foreground py-12">لا توجد بيانات متاحة.</p>
+      {!isLoading && results.length === 0 && (
+        <p className="text-center text-sm text-muted-foreground py-12">
+          {basePlayers.length === 0 ? "لا توجد بيانات متاحة." : "لا توجد نتائج بالفلاتر الحالية."}
+        </p>
       )}
+
+      <Link to={parentPath} className="text-sm text-primary block text-center mt-6">← {parentLabel}</Link>
     </div>
   );
 };
