@@ -19,6 +19,7 @@ import EntityPlayersPage from "@/pages/EntityPlayersPage";
 import StatsIndexPage from "@/pages/StatsIndexPage";
 import StatsPage from "@/pages/StatsPage";
 import EventsPage from "@/pages/EventsPage";
+import EventDetailPage from "@/pages/EventDetailPage";
 import OAuthConsent from "@/pages/OAuthConsent";
 import NotFound from "./pages/NotFound";
 
