@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { Trophy, Users, Globe2, Shield, Sparkles, ArrowLeft, GitCompare, BarChart3 } from "lucide-react";
 import { useTopRanked, useRandomBatch } from "@/hooks/useFc26";
+import { useAllPromos } from "@/hooks/useFutgg";
 import PlayerCard from "@/components/PlayerCard";
 import PlayerListRow from "@/components/PlayerListRow";
 import SearchSuggestions from "@/components/SearchSuggestions";
