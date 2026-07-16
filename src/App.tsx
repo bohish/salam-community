@@ -48,6 +48,7 @@ const App = () => (
               <Route path="/search" element={<SearchPage />} />
               <Route path="/players" element={<PlayersPage />} />
               <Route path="/events" element={<EventsPage />} />
+              <Route path="/event/:slug" element={<EventDetailPage />} />
               <Route path="/compare" element={<ComparePage />} />
               <Route path="/player/:id" element={<PlayerDetailPage />} />
               <Route path="/stats" element={<StatsIndexPage />} />
