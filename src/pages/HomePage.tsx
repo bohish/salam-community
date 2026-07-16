@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { Trophy, Users, Globe2, Shield, Sparkles, ArrowLeft, GitCompare, BarChart3 } from "lucide-react";
 import { useTopRanked, useRandomBatch } from "@/hooks/useFc26";
+import { useAllPromos } from "@/hooks/useFutgg";
 import PlayerCard from "@/components/PlayerCard";
 import PlayerListRow from "@/components/PlayerListRow";
 import SearchSuggestions from "@/components/SearchSuggestions";
@@ -37,6 +38,7 @@ const Row = ({ players }: { players: any[] }) => (
 const HomePage = () => {
   const top = useTopRanked(24);
   const random = useRandomBatch(12, "featured");
+  const { promos, isLoading: promosLoading } = useAllPromos(6);
 
   return (
     <div className="container mx-auto px-4 py-4 max-w-5xl">
@@ -68,6 +70,43 @@ const HomePage = () => {
         <QuickLink to="/nations" icon={Globe2} label="المنتخبات" />
         <QuickLink to="/favorites" icon={Users} label="المفضلة" />
       </div>
+
+      <Section
+        title="أحداث حية"
+        action={<Link to="/events" className="text-xs text-primary flex items-center gap-1">عرض الكل <ArrowLeft className="w-3 h-3" /></Link>}
+      >
+        {promosLoading && (
+          <div className="flex gap-3 overflow-x-auto hide-scrollbar -mx-4 px-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="w-56 h-32 shrink-0 glass rounded-2xl animate-pulse" />
+            ))}
+          </div>
+        )}
+        {promos.length > 0 && (
+          <div className="flex gap-3 overflow-x-auto hide-scrollbar snap-x snap-mandatory -mx-4 px-4">
+            {promos.slice(0, 8).map((g) => (
+              <Link
+                key={g.slug}
+                to={`/event/${g.slug}`}
+                className="w-56 shrink-0 snap-start glass hover:glass-strong rounded-2xl p-3 transition-fluid"
+              >
+                <div className="flex gap-1 mb-2">
+                  {g.preview.map((p) => {
+                    const img = p.cardImageUrl || p.simpleCardImageUrl || p.imageUrl;
+                    return (
+                      <div key={p.id} className="flex-1 aspect-[3/4] rounded-md overflow-hidden bg-muted/30 flex items-center justify-center">
+                        {img && <img src={img} alt="" loading="lazy" className="w-full h-full object-contain" />}
+                      </div>
+                    );
+                  })}
+                </div>
+                <p className="font-black text-xs truncate">{g.name}</p>
+                <p className="text-[10px] text-muted-foreground">{g.count} لاعب · أعلى {g.topOverall}</p>
+              </Link>
+            ))}
+          </div>
+        )}
+      </Section>
 
       <Section title="لاعبون مميزون">
         {random.isLoading && (

@@ -19,6 +19,7 @@ import EntityPlayersPage from "@/pages/EntityPlayersPage";
 import StatsIndexPage from "@/pages/StatsIndexPage";
 import StatsPage from "@/pages/StatsPage";
 import EventsPage from "@/pages/EventsPage";
+import EventDetailPage from "@/pages/EventDetailPage";
 import OAuthConsent from "@/pages/OAuthConsent";
 import NotFound from "./pages/NotFound";
 
@@ -47,6 +48,7 @@ const App = () => (
               <Route path="/search" element={<SearchPage />} />
               <Route path="/players" element={<PlayersPage />} />
               <Route path="/events" element={<EventsPage />} />
+              <Route path="/event/:slug" element={<EventDetailPage />} />
               <Route path="/compare" element={<ComparePage />} />
               <Route path="/player/:id" element={<PlayerDetailPage />} />
               <Route path="/stats" element={<StatsIndexPage />} />
