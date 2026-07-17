@@ -62,7 +62,7 @@ const EntityPlayersPage = ({ mode }: { mode: Mode }) => {
   return (
     <div className="container mx-auto px-4 py-4 max-w-3xl">
       <Helmet>
-        <title>{decoded} — FUTMAC FC 26</title>
+        <title>{decoded} — futmac.com FC 26</title>
         <meta name="description" content={`جميع لاعبي ${decoded} في EA SPORTS FC 26 مع الإحصائيات والفلاتر.`} />
         <link rel="canonical" href={`${parentPath.replace("s", "")}/${encodeURIComponent(name)}`} />
       </Helmet>

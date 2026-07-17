@@ -8,7 +8,7 @@ import { entitySlug } from "@/lib/slug";
 const ClubsPage = () => (
   <div className="container mx-auto px-4 py-4 max-w-3xl">
     <Helmet>
-      <title>الأندية — FUTMAC FC 26</title>
+      <title>الأندية — futmac.com FC 26</title>
       <meta name="description" content="تصفح أشهر أندية FC 26 وقائمة لاعبي كل نادي." />
       <link rel="canonical" href="/clubs" />
     </Helmet>

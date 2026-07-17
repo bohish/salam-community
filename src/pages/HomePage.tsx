@@ -45,7 +45,7 @@ const HomePage = () => {
   return (
     <div className="container mx-auto px-4 py-4 max-w-5xl">
       <Helmet>
-        <title>FUTMAC — قاعدة بيانات EA SPORTS FC 26</title>
+        <title>futmac.com — قاعدة بيانات EA SPORTS FC 26</title>
         <meta name="description" content="اكتشف لاعبي EA SPORTS FC 26 بالتفاصيل الكاملة، الإحصائيات، الفلاتر المتقدمة، والمقارنات." />
         <link rel="canonical" href="/" />
       </Helmet>

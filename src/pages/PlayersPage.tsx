@@ -20,7 +20,7 @@ const PlayersPage = () => {
   return (
     <div className="container mx-auto px-4 py-4 max-w-4xl">
       <Helmet>
-        <title>استكشاف اللاعبين — FUTMAC FC 26</title>
+        <title>استكشاف اللاعبين — futmac.com FC 26</title>
         <meta name="description" content="استكشف لاعبي EA FC 26 بفلاتر متقدمة: تقييم، مركز، نادي، دوري، منتخب، عمر، طول." />
       </Helmet>
 

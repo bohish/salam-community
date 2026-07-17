@@ -30,7 +30,7 @@ const SearchPage = () => {
   return (
     <div className="container mx-auto px-4 py-4 max-w-3xl">
       <Helmet>
-        <title>{trimmed ? `بحث "${trimmed}"` : "البحث"} — FUTMAC FC 26</title>
+        <title>{trimmed ? `بحث "${trimmed}"` : "البحث"} — futmac.com FC 26</title>
         <meta name="description" content="ابحث عن أي لاعب في EA SPORTS FC 26 بالاسم أو رقم ID مع اقتراحات فورية." />
       </Helmet>
 

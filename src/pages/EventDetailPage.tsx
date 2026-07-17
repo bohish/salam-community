@@ -59,7 +59,7 @@ const EventDetailPage = () => {
   return (
     <div className="container mx-auto px-4 py-4 max-w-5xl">
       <Helmet>
-        <title>{group ? `${group.name} — FUTMAC FC 26` : "الحدث — FUTMAC"}</title>
+        <title>{group ? `${group.name} — futmac.com FC 26` : "الحدث — futmac.com"}</title>
         <meta name="description" content={group ? `كل لاعبي ${group.name} في EA FC 26 (${group.count} لاعب).` : "تفاصيل الحدث في EA FC 26"} />
       </Helmet>
 

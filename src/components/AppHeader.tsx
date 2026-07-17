@@ -16,11 +16,11 @@ const AppHeader = () => {
           <button onClick={() => navigate("/")} className="flex items-center gap-2.5 shrink-0 group">
             <div className="relative w-10 h-10 rounded-2xl bg-gradient-primary flex items-center justify-center shadow-lg glow-hover overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-br from-white/30 to-transparent" />
-              <span className="relative font-black text-primary-foreground text-sm tracking-tighter">FM</span>
+              <span className="relative font-black text-primary-foreground text-[10px] tracking-tighter">fut</span>
             </div>
             <div className="hidden sm:block text-right leading-none">
               <h1 className="font-black text-lg text-foreground tracking-tight">
-                FUT<span className="text-gradient-primary">MAC</span>
+                futmac<span className="text-gradient-primary">.com</span>
               </h1>
               <p className="text-[9px] text-muted-foreground mt-0.5 uppercase tracking-[0.15em]">EA FC 26</p>
             </div>

@@ -21,7 +21,7 @@ Deno.serve(async (req) => {
     const upstream = await fetch(target, {
       headers: {
         "Accept": "application/json",
-        "User-Agent": "Mozilla/5.0 (compatible; FUTMAC/1.0)",
+        "User-Agent": "Mozilla/5.0 (compatible; futmac.com/1.0)",
       },
     });
     const body = await upstream.text();

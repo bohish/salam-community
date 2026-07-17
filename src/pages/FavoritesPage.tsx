@@ -36,7 +36,7 @@ const FavoritesPage = () => {
   if (!user) {
     return (
       <>
-        <Helmet><title>المفضلة | FUTMAC</title></Helmet>
+        <Helmet><title>المفضلة | futmac.com</title></Helmet>
         <div className="container mx-auto px-4 py-8">
           <div className="glass-strong rounded-3xl p-12 text-center max-w-md mx-auto animate-in">
             <div className="w-16 h-16 mx-auto rounded-2xl bg-destructive/10 flex items-center justify-center mb-4">
@@ -59,8 +59,8 @@ const FavoritesPage = () => {
   return (
     <>
       <Helmet>
-        <title>المفضلة | FUTMAC</title>
-        <meta name="description" content="اللاعبين المفضلين لديك في FUTMAC." />
+        <title>المفضلة | futmac.com</title>
+        <meta name="description" content="اللاعبين المفضلين لديك في futmac.com." />
       </Helmet>
 
       <div className="container mx-auto px-4 py-4 max-w-3xl">

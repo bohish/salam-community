@@ -13,7 +13,7 @@
     "server": {
       "name": "futmac-mcp",
       "version": "0.1.0",
-      "title": "FUTMAC — EA FC 26"
+      "title": "futmac.com — EA FC 26"
     },
     "tools": [
       {
@@ -96,7 +96,7 @@
       {
         "name": "list_favorites",
         "title": "List my favorite players",
-        "description": "List the signed-in user's favorite FC 26 players saved in FUTMAC.",
+        "description": "List the signed-in user's favorite FC 26 players saved in futmac.com.",
         "annotations": {
           "readOnlyHint": true,
           "idempotentHint": true,
@@ -112,7 +112,7 @@
       {
         "name": "add_favorite",
         "title": "Add favorite player",
-        "description": "Add an FC 26 player to the signed-in user's FUTMAC favorites.",
+        "description": "Add an FC 26 player to the signed-in user's futmac.com favorites.",
         "annotations": {
           "readOnlyHint": false,
           "destructiveHint": false,
@@ -138,7 +138,7 @@
       {
         "name": "remove_favorite",
         "title": "Remove favorite player",
-        "description": "Remove a player from the signed-in user's FUTMAC favorites.",
+        "description": "Remove a player from the signed-in user's futmac.com favorites.",
         "annotations": {
           "readOnlyHint": false,
           "destructiveHint": true,
