@@ -70,10 +70,46 @@ async function pool<T>(items: number[], limit: number, worker: (n: number) => Pr
   return results.filter((x): x is T => x != null);
 }
 
+/** Try FUT.GG first (stable, richer data), fall back to msmc if nothing matches. */
+async function fetchPlayerFromFutgg(id: number | string, signal?: AbortSignal): Promise<Player | null> {
+  const idStr = String(id).trim();
+  if (!idStr) return null;
+  // Try as basePlayerEaId (base card group), then as eaId (specific card version).
+  const tryPaths = [
+    `/players/v2/26/?basePlayerEaId=${encodeURIComponent(idStr)}&sort=-overall`,
+    `/players/v2/26/?eaId=${encodeURIComponent(idStr)}`,
+  ];
+  for (const path of tryPaths) {
+    try {
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/futgg-proxy?path=${encodeURIComponent(path)}`;
+      const res = await fetch(url, { signal, headers: { Accept: "application/json" } });
+      if (!res.ok) continue;
+      const json = await res.json() as { data?: FutGgPlayer[] };
+      const list = json?.data ?? [];
+      if (list.length === 0) continue;
+      // Prefer the base gold card if present, else highest-overall version.
+      const base = list.find((p) => !p.isSpecial && !p.isIcon && !p.isHero);
+      const best = base ?? [...list].sort((a, b) => b.overall - a.overall)[0];
+      return futggToPlayer(best);
+    } catch { /* try next */ }
+  }
+  return null;
+}
+
 export const fc26Api = {
   async getById(id: number | string, signal?: AbortSignal): Promise<Player> {
-    const raw = await req<RawPlayer>(`/player/id/${encodeURIComponent(String(id))}`, signal);
-    return toPlayer(raw);
+    const idStr = String(id).trim();
+    if (!idStr) throw new ApiError("Missing player id");
+    // 1) FUT.GG (via proxy) — primary source; stable and no rate limits for us.
+    const fg = await fetchPlayerFromFutgg(idStr, signal);
+    if (fg) return fg;
+    // 2) Fallback to msmc direct — may 429 but worth trying.
+    try {
+      const raw = await req<RawPlayer>(`/player/id/${encodeURIComponent(idStr)}`, signal);
+      return toPlayer(raw);
+    } catch (e) {
+      throw new ApiError(`Player ${idStr} not found`, (e as ApiError).status);
+    }
   },
   async getByRank(rank: number, signal?: AbortSignal): Promise<Player> {
     const raw = await req<RawPlayer>(`/player/rank/${rank}`, signal);
