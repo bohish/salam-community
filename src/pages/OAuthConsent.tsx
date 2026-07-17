@@ -112,12 +112,12 @@ export default function OAuthConsent() {
           </div>
           <div>
             <h1 className="text-lg font-black text-foreground">ربط {clientName}</h1>
-            <p className="text-xs text-muted-foreground">بحساب FUTHUB الخاص بك</p>
+            <p className="text-xs text-muted-foreground">بحساب FUTMAC الخاص بك</p>
           </div>
         </div>
 
         <p className="text-sm text-foreground/90 mb-4 leading-relaxed">
-          سيتمكن <span className="font-bold">{clientName}</span> من استخدام أدوات FUTHUB نيابةً عنك
+          سيتمكن <span className="font-bold">{clientName}</span> من استخدام أدوات FUTMAC نيابةً عنك
           (البحث عن اللاعبين، تفاصيل البطاقات، وإدارة قائمة المفضلة الخاصة بك).
         </p>
 

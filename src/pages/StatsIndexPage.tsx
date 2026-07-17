@@ -6,7 +6,7 @@ import { STAT_CATEGORIES } from "./StatsPage";
 const StatsIndexPage = () => (
   <div className="container mx-auto px-4 py-4 max-w-3xl">
     <Helmet>
-      <title>الإحصائيات — FUTHUB FC 26</title>
+      <title>الإحصائيات — FUTMAC FC 26</title>
       <meta name="description" content="تصنيفات لاعبي EA FC 26: أسرع اللاعبين، أفضل المهاجمين، الممررين، المراوغين، المدافعين، والحراس." />
     </Helmet>
 
