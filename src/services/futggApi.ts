@@ -71,6 +71,30 @@ export const futggApi = {
   listPlayers: (page = 1, signal?: AbortSignal) =>
     req<Paginated<FutGgPlayer>>(`/players/v2/26/?page=${page}`, signal),
 
+  /** Top-rated player items — one page (25 items). */
+  listTopRated: (page = 1, signal?: AbortSignal) =>
+    req<Paginated<FutGgPlayer>>(`/players/v2/26/?sort=-overall&page=${page}`, signal),
+
+  /** Fetch top-N players sorted by overall (multi-page). */
+  fetchTopRated: async (count: number, signal?: AbortSignal): Promise<FutGgPlayer[]> => {
+    const pages = Math.max(1, Math.ceil(count / 25));
+    const results = await Promise.all(
+      Array.from({ length: pages }, (_, i) =>
+        futggApi.listTopRated(i + 1, signal).catch(() => null)
+      )
+    );
+    const seen = new Set<number>();
+    const out: FutGgPlayer[] = [];
+    for (const p of results) {
+      if (!p?.data) continue;
+      for (const pl of p.data) {
+        const id = pl.basePlayerEaId ?? pl.eaId;
+        if (!seen.has(id)) { seen.add(id); out.push(pl); }
+      }
+    }
+    return out.slice(0, count);
+  },
+
   /** All special (promo/TOTW/TOTY/Icon/Hero/SBC) player items — one page. */
   listSpecialPlayers: (page = 1, signal?: AbortSignal) =>
     req<Paginated<FutGgPlayer>>(`/players/v2/26/?isSpecial=1&page=${page}`, signal),
