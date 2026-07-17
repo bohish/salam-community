@@ -288,16 +288,29 @@ const PlayerDetailPage = () => {
         </div>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-4 mb-6">
-        {groups.map((g) => (
-          <div key={g.title} className="glass rounded-2xl p-4">
-            <h3 className="text-sm font-black mb-3">{g.title}</h3>
-            <div className="grid gap-2">
-              {g.stats.map((s) => <StatBar key={s.key} label={s.label} value={s.value} />)}
-            </div>
-          </div>
-        ))}
+      <div className="mb-6">
+        <h2 className="section-title mb-3">الإحصائيات التفصيلية</h2>
+        <div className="grid md:grid-cols-3 gap-3">
+          {groups.map((g) => {
+            const overall = ({
+              Pace: player.pace, Shooting: player.shooting, Passing: player.passing,
+              Dribbling: player.dribbling, Defending: player.defending, Physical: player.physical,
+            } as Record<string, number>)[g.title] ?? 0;
+            return (
+              <div key={g.title} className="glass rounded-2xl p-4 hover:glass-strong transition-fluid">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-xs font-black tracking-wider uppercase text-muted-foreground">{g.title}</h3>
+                  {overall > 0 && <StatRing value={overall} />}
+                </div>
+                <div className="flex flex-col">
+                  {g.stats.map((s) => <StatRow key={s.key} label={s.label} value={s.value} />)}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
+
 
       {/* Other Versions */}
       {(versionsQ.data && versionsQ.data.length > 1) ? (
