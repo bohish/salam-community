@@ -1,6 +1,6 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { Heart, ExternalLink, GitCompare, Layers, ArrowLeft, Sparkles } from "lucide-react";
+import { Heart, ExternalLink, GitCompare, Layers, ArrowLeft, Sparkles, Ruler, Weight, Footprints, Star } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { usePlayerById, useTeamPlayers, useNationPlayers } from "@/hooks/useFc26";
 import { buildStatGroups } from "@/types/player";
@@ -25,7 +25,7 @@ const VersionCard = ({ v }: { v: FutGgPlayer }) => (
   <a
     href={v.url ? (v.url.startsWith("http") ? v.url : `https://www.fut.gg${v.url}`) : `https://www.fut.gg/players/${v.slug}`}
     target="_blank" rel="noreferrer"
-    className="glass rounded-2xl p-3 flex flex-col items-center gap-2 hover:glass-strong hover-lift transition-fluid text-center shrink-0 w-36"
+    className="glass rounded-xl p-3 flex flex-col items-center gap-2 hover:glass-strong hover:border-primary/40 transition-fluid text-center shrink-0 w-32"
     title={displayName(v)}
   >
     <div className="w-20 h-28 flex items-center justify-center">
@@ -37,8 +37,28 @@ const VersionCard = ({ v }: { v: FutGgPlayer }) => (
       <span className={`rating-chip ${v.overall >= 87 ? "rating-chip-elite" : ""}`}>{v.overall}</span>
       <span className="text-[10px] font-bold text-muted-foreground">{v.position}</span>
     </div>
-    <p className="text-[10px] font-bold text-primary truncate w-full">{categoryLabel(v)}</p>
+    <p className="text-[10px] font-bold text-primary/90 truncate w-full">{categoryLabel(v)}</p>
   </a>
+);
+
+const StarRow = ({ n, max = 5, label }: { n: number; max?: number; label: string }) => (
+  <div className="flex items-center justify-between gap-2 py-1.5">
+    <span className="text-[11px] font-bold tracking-wider uppercase text-muted-foreground">{label}</span>
+    <div className="flex items-center gap-0.5">
+      {Array.from({ length: max }).map((_, i) => (
+        <Star key={i} className={`w-3.5 h-3.5 ${i < n ? "fill-accent text-accent" : "text-white/10"}`} />
+      ))}
+    </div>
+  </div>
+);
+
+const InfoLine = ({ label, value, icon: Icon }: { label: string; value: string | number; icon?: any }) => (
+  <div className="flex items-center justify-between gap-2 py-1.5 text-[12px]">
+    <span className="flex items-center gap-1.5 text-muted-foreground">
+      {Icon && <Icon className="w-3.5 h-3.5" />} {label}
+    </span>
+    <span className="font-bold text-foreground/95 truncate">{value}</span>
+  </div>
 );
 
 const PlayerDetailPage = () => {
@@ -102,155 +122,162 @@ const PlayerDetailPage = () => {
     navigate("/compare");
   };
 
+  const foot = (player.raw["Preferred Foot"] as string) || (player.raw["foot"] as string) || "—";
+  const height = player.raw["Height"] || player.raw["height"];
+  const weight = player.raw["Weight"] || player.raw["weight"];
+  const wf = Number(player.raw["Weak Foot"] || player.raw["weakFoot"] || 3);
+  const skm = Number(player.raw["Skill Moves"] || player.raw["skillMoves"] || 3);
+  const wrAtk = player.raw["Att. Work Rate"] || player.raw["attackWorkRate"] || "Med";
+  const wrDef = player.raw["Def. Work Rate"] || player.raw["defenseWorkRate"] || "Med";
+
   return (
-    <div className="min-h-screen bg-mesh">
+    <div className="min-h-screen">
       <Helmet>
         <title>{`${player.name} · ${player.rating} ${player.position} — FUTMAC FC 26`}</title>
-        <meta name="description" content={`إحصائيات وتفاصيل ${player.name} في EA SPORTS FC 26. تقييم ${player.rating}, ${player.club} · ${player.nation}.`} />
+        <meta name="description" content={`إحصائيات ${player.name} في EA SPORTS FC 26 — تقييم ${player.rating}, ${player.club} · ${player.nation}.`} />
         <link rel="canonical" href={canonical} />
         <meta property="og:title" content={`${player.name} — ${player.rating} ${player.position}`} />
         <meta property="og:description" content={`${player.club} · ${player.nation} · إحصائيات EA FC 26 كاملة.`} />
         {player.cardUrl && <meta property="og:image" content={player.cardUrl} />}
       </Helmet>
 
-      {/* Ambient glow backdrop */}
+      {/* Ambient hero backdrop */}
       <div className="relative">
         <div className="absolute inset-0 -z-10 overflow-hidden pointer-events-none">
-          <div className="absolute -top-20 right-10 w-96 h-96 rounded-full bg-primary/20 blur-[120px] animate-pulse-glow" />
-          <div className="absolute top-40 -left-20 w-96 h-96 rounded-full bg-accent/15 blur-[120px]" />
+          <div className="absolute -top-24 right-10 w-[520px] h-[520px] rounded-full bg-primary/15 blur-[140px] animate-pulse-glow" />
+          <div className="absolute top-40 -left-20 w-[420px] h-[420px] rounded-full bg-primary-deep/20 blur-[130px]" />
+          <div className="absolute inset-x-0 top-0 h-[420px] bg-gradient-to-b from-primary/[0.06] to-transparent" />
         </div>
 
-        <div className="container mx-auto px-4 pt-4 pb-10 max-w-6xl">
-          <div className="flex items-center justify-between gap-2 mb-3">
+        <div className="container mx-auto px-4 pt-4 pb-10 max-w-[1240px]">
+          <div className="flex items-center justify-between gap-2 mb-4">
             <Breadcrumbs items={[
               { label: "اللاعبون", href: "/players" },
               { label: player.name },
             ]} />
-            <button onClick={() => navigate(-1)} className="glass rounded-xl px-3 py-1.5 text-xs font-bold inline-flex items-center gap-1 hover:border-primary/40">
+            <button onClick={() => navigate(-1)} className="glass rounded-lg px-3 py-1.5 text-xs font-bold inline-flex items-center gap-1 hover:border-primary/40">
               <ArrowLeft className="w-3.5 h-3.5" /> رجوع
             </button>
           </div>
 
-          {/* HERO: large card left + identity right */}
-          <section className="grid lg:grid-cols-[340px_1fr] gap-6 mb-6 animate-fade-in">
-            <div className="card-premium rounded-3xl p-6 flex flex-col items-center justify-center relative overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-primary/10" />
-              <div className="absolute -inset-16 bg-[radial-gradient(circle_at_center,hsl(var(--primary)/0.35),transparent_60%)] blur-2xl" />
-              {player.cardUrl && (
-                <img
-                  src={player.cardUrl}
-                  alt={player.name}
-                  className="relative w-full max-w-[260px] object-contain drop-shadow-[0_20px_50px_hsl(var(--primary)/0.5)] animate-float"
-                />
-              )}
-              <div className="relative flex items-center gap-2 mt-4 flex-wrap justify-center">
-                <span className="rating-chip rating-chip-elite text-base px-3 py-1.5">{player.rating}</span>
-                <span className="rating-chip text-base px-3 py-1.5">{player.position}</span>
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-4">
-              <div className="glass-strong rounded-3xl p-5 relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-primary/10 blur-3xl" />
-                <div className="relative">
-                  <p className="text-[10px] font-black tracking-[0.3em] text-primary uppercase mb-1 inline-flex items-center gap-1">
-                    <Sparkles className="w-3 h-3" /> EA SPORTS FC 26
-                  </p>
-                  <h1 className="text-4xl md:text-5xl font-black leading-tight text-gradient-primary">{player.name}</h1>
-                  <p className="text-sm text-muted-foreground mt-2 font-semibold">
-                    {player.club} <span className="text-primary/60">·</span> {player.league} <span className="text-primary/60">·</span> {player.nation}
-                  </p>
-
-                  <div className="flex flex-wrap items-center gap-2 mt-4">
-                    <button onClick={openCompare} className="btn-primary text-xs px-4 py-2">
-                      <GitCompare className="w-3.5 h-3.5" />
-                      {inCompare ? "افتح المقارنة" : "قارن اللاعب"}
-                    </button>
-                    <button onClick={() => compare.toggle(player.id)} className={`btn-ghost text-xs px-4 py-2 ${inCompare ? "text-primary border-primary/50" : ""}`}>
-                      <GitCompare className="w-3.5 h-3.5" />
-                      {inCompare ? "في المقارنة" : "أضف للمقارنة"}
-                    </button>
-                    <button onClick={() => toggle(player)} className="btn-ghost text-xs px-4 py-2">
-                      <Heart className={`w-3.5 h-3.5 ${fav ? "fill-destructive text-destructive" : ""}`} />
-                      {fav ? "في المفضلة" : "المفضلة"}
-                    </button>
-                    {player.eaUrl && (
-                      <a href={player.eaUrl} target="_blank" rel="noreferrer" className="btn-ghost text-xs px-4 py-2">
-                        EA <ExternalLink className="w-3 h-3" />
-                      </a>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Face stat pills */}
-              <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
-                {(player.isGK
-                  ? [
-                      ["DIV", +player.raw["GK Diving"] || 0],
-                      ["HAN", +player.raw["GK Handling"] || 0],
-                      ["KIC", +player.raw["GK Kicking"] || 0],
-                      ["REF", +player.raw["GK Reflexes"] || 0],
-                      ["SPD", player.pace],
-                      ["POS", +player.raw["GK Positioning"] || 0],
-                    ]
-                  : [
-                      ["PAC", player.pace], ["SHO", player.shooting], ["PAS", player.passing],
-                      ["DRI", player.dribbling], ["DEF", player.defending], ["PHY", player.physical],
-                    ]).map(([l, v]) => (
-                  <div key={l as string} className="glass rounded-2xl p-3 text-center hover:border-primary/40 hover-lift transition-fluid">
-                    <p className="text-[10px] font-black tracking-widest text-muted-foreground">{l}</p>
-                    <p className="text-2xl font-black text-gradient-primary tabular-nums">{v as number}</p>
-                  </div>
-                ))}
-              </div>
-
-              {/* PlayStyles */}
-              {player.playStyles.length > 0 && (
-                <div className="glass rounded-2xl p-4">
-                  <h3 className="text-xs font-black tracking-widest uppercase text-muted-foreground mb-3">أساليب اللعب</h3>
-                  <div className="space-y-2.5">
-                    {psPlus.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5">
-                        {psPlus.map((ps) => (
-                          <span key={ps} className="px-2.5 py-1 rounded-lg text-[11px] font-black bg-gradient-primary text-primary-foreground shadow-lg inline-flex items-center gap-1">
-                            <Sparkles className="w-2.5 h-2.5" /> {ps}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                    {psBase.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5">
-                        {psBase.map((ps) => (
-                          <span key={ps} className="px-2.5 py-1 rounded-lg text-[11px] font-bold glass-subtle border border-border/60">{ps}</span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {player.altPositions.length > 0 && (
-                <div className="glass rounded-2xl p-3 flex items-center gap-3 flex-wrap">
-                  <span className="text-[10px] font-black tracking-widest uppercase text-muted-foreground">مراكز بديلة</span>
-                  {player.altPositions.map((ap) => (
-                    <span key={ap} className="rating-chip">{ap}</span>
+          {/* HERO — sidebar (card + quick info) + right (identity + face stats grid) */}
+          <section className="grid lg:grid-cols-[300px_1fr] gap-5 mb-6 animate-fade-in">
+            {/* Left column: card + info panel */}
+            <aside className="flex flex-col gap-4">
+              <div className="panel panel-glow p-5 flex flex-col items-center justify-center relative">
+                {player.cardUrl && (
+                  <img
+                    src={player.cardUrl}
+                    alt={player.name}
+                    className="relative w-full max-w-[240px] object-contain drop-shadow-[0_25px_60px_hsl(var(--primary)/0.45)] animate-float"
+                  />
+                )}
+                <div className="flex items-center gap-2 mt-4 flex-wrap justify-center">
+                  <span className="rating-chip rating-chip-elite text-sm px-2.5 py-1">{player.rating}</span>
+                  <span className="rating-chip text-sm px-2.5 py-1">{player.position}</span>
+                  {player.altPositions.slice(0, 3).map((ap) => (
+                    <span key={ap} className="text-[10px] font-black px-2 py-1 rounded-md glass-subtle border border-border/60 text-muted-foreground">{ap}</span>
                   ))}
                 </div>
-              )}
-            </div>
-          </section>
+              </div>
 
-          {/* Face stats detailed */}
-          <section className="mb-6">
-            <h2 className="section-title mb-3">الإحصائيات التفصيلية</h2>
-            <FaceStats player={player} groups={groups} />
+              {/* Compact info panel — FUT.GG-style */}
+              <div className="panel p-4">
+                <p className="eyebrow mb-2">Player Info</p>
+                <div className="divide-hair">
+                  <InfoLine label="النادي" value={player.club || "—"} />
+                  <InfoLine label="الدوري" value={player.league || "—"} />
+                  <InfoLine label="المنتخب" value={player.nation || "—"} />
+                  {height && <InfoLine label="الطول" value={height as any} icon={Ruler} />}
+                  {weight && <InfoLine label="الوزن" value={weight as any} icon={Weight} />}
+                  <InfoLine label="القدم" value={foot} icon={Footprints} />
+                  <InfoLine label="معدل الهجوم" value={String(wrAtk)} />
+                  <InfoLine label="معدل الدفاع" value={String(wrDef)} />
+                  <StarRow n={skm} label="مهارات" />
+                  <StarRow n={wf} label="القدم الأضعف" />
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="panel p-3 flex flex-col gap-2">
+                <button onClick={openCompare} className="btn-primary w-full text-xs py-2.5">
+                  <GitCompare className="w-3.5 h-3.5" />
+                  {inCompare ? "افتح المقارنة" : "قارن اللاعب"}
+                </button>
+                <div className="grid grid-cols-2 gap-2">
+                  <button onClick={() => compare.toggle(player.id)} className={`btn-ghost text-xs py-2 ${inCompare ? "text-primary border-primary/50" : ""}`}>
+                    <GitCompare className="w-3.5 h-3.5" />
+                    {inCompare ? "في القائمة" : "أضف"}
+                  </button>
+                  <button onClick={() => toggle(player)} className="btn-ghost text-xs py-2">
+                    <Heart className={`w-3.5 h-3.5 ${fav ? "fill-destructive text-destructive" : ""}`} />
+                    {fav ? "مفضّل" : "المفضلة"}
+                  </button>
+                </div>
+                {player.eaUrl && (
+                  <a href={player.eaUrl} target="_blank" rel="noreferrer" className="btn-ghost text-xs py-2 w-full">
+                    EA Sports <ExternalLink className="w-3 h-3" />
+                  </a>
+                )}
+              </div>
+            </aside>
+
+            {/* Right column: identity ribbon + face stats grid */}
+            <div className="flex flex-col gap-4">
+              <div className="panel panel-glow p-5">
+                <div className="flex items-start justify-between gap-4 flex-wrap">
+                  <div className="min-w-0">
+                    <p className="eyebrow inline-flex items-center gap-1.5">
+                      <Sparkles className="w-3 h-3" /> EA SPORTS FC 26
+                    </p>
+                    <h1 className="font-display text-4xl md:text-5xl font-black tracking-tighter mt-1 leading-none">
+                      {player.name}
+                    </h1>
+                    <p className="text-sm text-muted-foreground mt-2 font-semibold">
+                      {player.club} <span className="text-primary/50">•</span> {player.league} <span className="text-primary/50">•</span> {player.nation}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="text-center">
+                      <div className="font-mono-num text-5xl font-black leading-none text-gradient-primary">{player.rating}</div>
+                      <p className="text-[9px] tracking-[0.28em] font-black text-muted-foreground mt-1">OVERALL</p>
+                    </div>
+                    <div className="w-px h-14 bg-border/70" />
+                    <div className="text-center">
+                      <div className="font-mono-num text-5xl font-black leading-none text-foreground">{player.position}</div>
+                      <p className="text-[9px] tracking-[0.28em] font-black text-muted-foreground mt-1">POSITION</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* PlayStyles pill row */}
+                {player.playStyles.length > 0 && (
+                  <div className="mt-4 pt-4 border-t border-border/60">
+                    <p className="eyebrow mb-2">PlayStyles</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {psPlus.map((ps) => (
+                        <span key={ps} className="px-2.5 py-1 rounded-md text-[11px] font-black bg-gradient-primary text-primary-foreground shadow-lg inline-flex items-center gap-1">
+                          <Sparkles className="w-2.5 h-2.5" /> {ps}
+                        </span>
+                      ))}
+                      {psBase.map((ps) => (
+                        <span key={ps} className="px-2.5 py-1 rounded-md text-[11px] font-bold glass-subtle border border-border/60 text-foreground/85">{ps}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Face stats grid (FUT.GG-style bars) */}
+              <FaceStats player={player} groups={groups} />
+            </div>
           </section>
 
           {/* Radar + Chemistry + Price row */}
           <section className="grid lg:grid-cols-3 gap-4 mb-6">
-            <div className="glass-strong rounded-2xl p-4">
-              <h3 className="text-sm font-black tracking-wider uppercase mb-2">مخطط الرادار</h3>
+            <div className="panel p-5">
+              <p className="eyebrow mb-2">Attribute Radar</p>
+              <h3 className="font-display font-black text-base mb-3">توزيع القدرات</h3>
               <StatRadar player={player} />
             </div>
             <ChemistryViz player={player} />
@@ -283,32 +310,31 @@ const PlayerDetailPage = () => {
             </section>
           )}
 
-          {/* Similar players */}
           {(sameClub.length > 0 || sameNation.length > 0 || better.length > 0 || cheaper.length > 0) && (
             <section className="mb-10">
               <h2 className="section-title mb-3">لاعبون مشابهون</h2>
               <div className="grid md:grid-cols-2 gap-4">
                 {sameClub.length > 0 && (
                   <div>
-                    <p className="text-xs font-black text-muted-foreground mb-2">من نفس النادي</p>
+                    <p className="eyebrow mb-2">من نفس النادي</p>
                     <div className="grid gap-2">{sameClub.map((p) => <PlayerListRow key={p.id} player={p} />)}</div>
                   </div>
                 )}
                 {sameNation.length > 0 && (
                   <div>
-                    <p className="text-xs font-black text-muted-foreground mb-2">من نفس المنتخب</p>
+                    <p className="eyebrow mb-2">من نفس المنتخب</p>
                     <div className="grid gap-2">{sameNation.map((p) => <PlayerListRow key={p.id} player={p} />)}</div>
                   </div>
                 )}
                 {better.length > 0 && (
                   <div>
-                    <p className="text-xs font-black text-muted-foreground mb-2">بدائل أفضل ({player.position})</p>
+                    <p className="eyebrow mb-2">بدائل أفضل ({player.position})</p>
                     <div className="grid gap-2">{better.map((p) => <PlayerListRow key={p.id} player={p} />)}</div>
                   </div>
                 )}
                 {cheaper.length > 0 && (
                   <div>
-                    <p className="text-xs font-black text-muted-foreground mb-2">بدائل أرخص ({player.position})</p>
+                    <p className="eyebrow mb-2">بدائل أرخص ({player.position})</p>
                     <div className="grid gap-2">{cheaper.map((p) => <PlayerListRow key={p.id} player={p} />)}</div>
                   </div>
                 )}
