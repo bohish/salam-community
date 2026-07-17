@@ -2,7 +2,8 @@
 // msmc.cc API does not expose (TOTW, TOTY, Hero, Icon, SBC, Objective, etc).
 // No auth required. Endpoints discovered from FUT.GG's public web bundle.
 
-const BASE = "https://www.fut.gg/api/fut";
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const BASE = `${SUPABASE_URL}/functions/v1/futgg-proxy`;
 
 export interface FutGgFaceStats {
   facePace: number; faceShooting: number; facePassing: number;
@@ -56,7 +57,8 @@ interface Paginated<T> {
 }
 
 async function req<T>(path: string, signal?: AbortSignal): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, {
+  const url = `${BASE}?path=${encodeURIComponent(path)}`;
+  const res = await fetch(url, {
     signal,
     headers: { Accept: "application/json" },
   });
