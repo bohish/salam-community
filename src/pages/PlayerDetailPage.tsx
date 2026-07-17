@@ -12,15 +12,25 @@ import PlayerListRow from "@/components/PlayerListRow";
 import { parseIdFromSlug, playerSlug } from "@/lib/slug";
 import { futggApi, displayName, categoryLabel, type FutGgPlayer } from "@/services/futggApi";
 
-const StatBar = ({ label, value }: { label: string; value: number }) => {
-  const color = value >= 85 ? "bg-primary" : value >= 70 ? "bg-accent" : value >= 50 ? "bg-gold" : "bg-destructive";
+const statColor = (v: number) =>
+  v >= 85 ? "text-primary" : v >= 70 ? "text-accent" : v >= 50 ? "text-gold" : "text-destructive";
+
+const StatRow = ({ label, value }: { label: string; value: number }) => (
+  <div className="flex items-center justify-between text-sm py-1.5 border-b border-border/40 last:border-0">
+    <span className="text-foreground/80">{label}</span>
+    <span className={`font-black tabular-nums ${statColor(value)}`}>{value}</span>
+  </div>
+);
+
+const StatRing = ({ value }: { value: number }) => {
+  const pct = Math.min(100, value);
+  const color = value >= 85 ? "hsl(var(--primary))" : value >= 70 ? "hsl(var(--accent))" : value >= 50 ? "hsl(var(--gold))" : "hsl(var(--destructive))";
   return (
-    <div className="flex items-center gap-3 text-xs">
-      <span className="w-28 shrink-0 text-muted-foreground">{label}</span>
-      <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
-        <div className={`h-full ${color} transition-all`} style={{ width: `${Math.min(100, value)}%` }} />
-      </div>
-      <span className="w-8 text-right font-bold">{value}</span>
+    <div
+      className="w-11 h-11 rounded-full flex items-center justify-center text-xs font-black shrink-0"
+      style={{ background: `conic-gradient(${color} ${pct * 3.6}deg, hsl(var(--muted)) 0deg)` }}
+    >
+      <div className="w-8 h-8 rounded-full bg-card flex items-center justify-center">{value}</div>
     </div>
   );
 };
@@ -139,7 +149,7 @@ const PlayerDetailPage = () => {
   return (
     <div className="container mx-auto px-4 py-4 max-w-5xl">
       <Helmet>
-        <title>{player.name} · {player.rating} {player.position} — FUTMAC FC 26</title>
+        <title>{`${player.name} · ${player.rating} ${player.position} — FUTMAC FC 26`}</title>
         <meta name="description" content={`إحصائيات وتفاصيل ${player.name} في EA SPORTS FC 26. تقييم ${player.rating}, ${player.club} · ${player.nation}.`} />
         <link rel="canonical" href={canonical} />
         <meta property="og:title" content={`${player.name} — ${player.rating} ${player.position}`} />
@@ -278,16 +288,29 @@ const PlayerDetailPage = () => {
         </div>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-4 mb-6">
-        {groups.map((g) => (
-          <div key={g.title} className="glass rounded-2xl p-4">
-            <h3 className="text-sm font-black mb-3">{g.title}</h3>
-            <div className="grid gap-2">
-              {g.stats.map((s) => <StatBar key={s.key} label={s.label} value={s.value} />)}
-            </div>
-          </div>
-        ))}
+      <div className="mb-6">
+        <h2 className="section-title mb-3">الإحصائيات التفصيلية</h2>
+        <div className="grid md:grid-cols-3 gap-3">
+          {groups.map((g) => {
+            const overall = ({
+              Pace: player.pace, Shooting: player.shooting, Passing: player.passing,
+              Dribbling: player.dribbling, Defending: player.defending, Physical: player.physical,
+            } as Record<string, number>)[g.title] ?? 0;
+            return (
+              <div key={g.title} className="glass rounded-2xl p-4 hover:glass-strong transition-fluid">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-xs font-black tracking-wider uppercase text-muted-foreground">{g.title}</h3>
+                  {overall > 0 && <StatRing value={overall} />}
+                </div>
+                <div className="flex flex-col">
+                  {g.stats.map((s) => <StatRow key={s.key} label={s.label} value={s.value} />)}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
+
 
       {/* Other Versions */}
       {(versionsQ.data && versionsQ.data.length > 1) ? (
