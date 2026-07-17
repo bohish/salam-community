@@ -11,7 +11,7 @@ function supabaseForUser(ctx: ToolContext) {
 export default defineTool({
   name: "list_favorites",
   title: "List my favorite players",
-  description: "List the signed-in user's favorite FC 26 players saved in FUTMAC.",
+  description: "List the signed-in user's favorite FC 26 players saved in futmac.com.",
   inputSchema: {},
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async (_input, ctx) => {

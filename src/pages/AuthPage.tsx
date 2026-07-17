@@ -76,8 +76,8 @@ const AuthPage = () => {
   return (
     <>
       <Helmet>
-        <title>تسجيل الدخول | FUTMAC</title>
-        <meta name="description" content="سجل دخولك إلى FUTMAC لحفظ لاعبيك المفضلين ومقارنة الإحصائيات." />
+        <title>تسجيل الدخول | futmac.com</title>
+        <meta name="description" content="سجل دخولك إلى futmac.com لحفظ لاعبيك المفضلين ومقارنة الإحصائيات." />
       </Helmet>
       <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center p-4">
         <div className="w-full max-w-md">

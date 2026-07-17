@@ -12,7 +12,7 @@ function supabaseForUser(ctx: ToolContext) {
 export default defineTool({
   name: "remove_favorite",
   title: "Remove favorite player",
-  description: "Remove a player from the signed-in user's FUTMAC favorites.",
+  description: "Remove a player from the signed-in user's futmac.com favorites.",
   inputSchema: {
     player_id: z.number().int().positive().describe("Player ID to remove."),
   },

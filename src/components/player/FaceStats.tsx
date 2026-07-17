@@ -9,7 +9,7 @@ const abbrev = (title: string) =>
   ({ Pace: "PAC", Shooting: "SHO", Passing: "PAS", Dribbling: "DRI",
      Defending: "DEF", Physical: "PHY", Goalkeeping: "GK" } as Record<string, string>)[title] ?? title.slice(0, 3).toUpperCase();
 
-// FUTMAC tone ramp — neon green → amber → red (readable on obsidian)
+// futmac.com tone ramp — neon green → amber → red (readable on obsidian)
 const toneHsl = (v: number) => {
   if (v >= 90) return "140 90% 58%";      // neon lime
   if (v >= 80) return "142 78% 48%";      // pitch green

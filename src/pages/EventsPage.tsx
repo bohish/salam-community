@@ -107,7 +107,7 @@ const EventsPage = () => {
   return (
     <div className="container mx-auto px-4 py-4 max-w-5xl">
       <Helmet>
-        <title>الأحداث والكروت الجديدة — FUTMAC FC 26</title>
+        <title>الأحداث والكروت الجديدة — futmac.com FC 26</title>
         <meta name="description" content="كل بروموات EA FC 26: TOTW, TOTY, TOTS, Icons, Heroes, SBC, Objectives و Evolutions." />
       </Helmet>
 

@@ -149,7 +149,7 @@ function supabaseForUser(ctx) {
 var list_favorites_default = defineTool4({
   name: "list_favorites",
   title: "List my favorite players",
-  description: "List the signed-in user's favorite FC 26 players saved in FUTMAC.",
+  description: "List the signed-in user's favorite FC 26 players saved in futmac.com.",
   inputSchema: {},
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async (_input, ctx) => {
@@ -179,7 +179,7 @@ function supabaseForUser2(ctx) {
 var add_favorite_default = defineTool5({
   name: "add_favorite",
   title: "Add favorite player",
-  description: "Add an FC 26 player to the signed-in user's FUTMAC favorites.",
+  description: "Add an FC 26 player to the signed-in user's futmac.com favorites.",
   inputSchema: {
     player_id: z4.number().int().positive().describe("Player ID to add.")
   },
@@ -223,7 +223,7 @@ function supabaseForUser3(ctx) {
 var remove_favorite_default = defineTool6({
   name: "remove_favorite",
   title: "Remove favorite player",
-  description: "Remove a player from the signed-in user's FUTMAC favorites.",
+  description: "Remove a player from the signed-in user's futmac.com favorites.",
   inputSchema: {
     player_id: z5.number().int().positive().describe("Player ID to remove.")
   },
@@ -242,9 +242,9 @@ var remove_favorite_default = defineTool6({
 var projectRef = "betpfgrmxpehxanbcymr";
 var mcp_default = defineMcp({
   name: "futmac-mcp",
-  title: "FUTMAC \u2014 EA FC 26",
+  title: "futmac.com \u2014 EA FC 26",
   version: "0.1.0",
-  instructions: "Tools for the FUTMAC EA Sports FC 26 database. Use `search_players` to look up players by name, `get_player` for full stats, `top_players` for the highest-rated players, and `list_favorites` / `add_favorite` / `remove_favorite` to manage the signed-in user's saved players.",
+  instructions: "Tools for the futmac.com EA Sports FC 26 database. Use `search_players` to look up players by name, `get_player` for full stats, `top_players` for the highest-rated players, and `list_favorites` / `add_favorite` / `remove_favorite` to manage the signed-in user's saved players.",
   auth: auth.oauth.issuer({
     issuer: `https://${projectRef}.supabase.co/auth/v1`,
     acceptedAudiences: "authenticated"

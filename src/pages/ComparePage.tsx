@@ -42,7 +42,7 @@ const ComparePage = () => {
   if (ids.length === 0) {
     return (
       <div className="container mx-auto px-4 py-4 max-w-4xl">
-        <Helmet><title>مقارنة اللاعبين — FUTMAC FC 26</title></Helmet>
+        <Helmet><title>مقارنة اللاعبين — futmac.com FC 26</title></Helmet>
         <Breadcrumbs items={[{ label: "مقارنة اللاعبين" }]} />
         <div className="glass-strong rounded-3xl p-12 text-center animate-in">
           <div className="w-16 h-16 mx-auto rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
@@ -63,7 +63,7 @@ const ComparePage = () => {
   return (
     <div className="container mx-auto px-4 py-4 max-w-6xl">
       <Helmet>
-        <title>مقارنة {players.map((p) => p.name).join(" vs ")} — FUTMAC FC 26</title>
+        <title>مقارنة {players.map((p) => p.name).join(" vs ")} — futmac.com FC 26</title>
         <meta name="description" content={`مقارنة تفصيلية للإحصائيات بين ${players.map((p) => p.name).join(" و ")}.`} />
       </Helmet>
 
