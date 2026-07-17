@@ -1,9 +1,10 @@
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, Link, useLocation, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { Heart, ExternalLink, GitCompare, Layers, ArrowLeft, Sparkles, Ruler, Weight, Footprints, Star } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { usePlayerById, useTeamPlayers, useNationPlayers } from "@/hooks/useFc26";
 import { buildStatGroups } from "@/types/player";
+import type { Player } from "@/types/player";
 import { useFavorites } from "@/hooks/useFavorites";
 import { useCompare } from "@/hooks/useCompare";
 import Breadcrumbs from "@/components/Breadcrumbs";
@@ -63,8 +64,11 @@ const InfoLine = ({ label, value, icon: Icon }: { label: string; value: string |
 
 const PlayerDetailPage = () => {
   const { id: rawParam } = useParams();
+  const location = useLocation();
   const numericId = parseIdFromSlug(rawParam || "");
-  const { data: player, isLoading, error } = usePlayerById(numericId);
+  const routedPlayer = (location.state as { player?: Player } | null)?.player;
+  const initialPlayer = routedPlayer && String(routedPlayer.id) === numericId ? routedPlayer : undefined;
+  const { data: player, isLoading, error } = usePlayerById(numericId, initialPlayer);
   const { isFavorite, toggle } = useFavorites();
   const compare = useCompare();
   const navigate = useNavigate();

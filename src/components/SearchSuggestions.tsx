@@ -69,7 +69,7 @@ const SearchSuggestions = ({ variant = "compact", autoFocus, placeholder }: Prop
   }, []);
 
   const go = (p: Player) => {
-    navigate(`/player/${playerSlug(p.name, p.id)}`);
+    navigate(`/player/${playerSlug(p.name, p.id)}`, { state: { player: p } });
     setOpen(false);
     setQ("");
   };

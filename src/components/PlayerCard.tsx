@@ -20,6 +20,7 @@ const PlayerCard = ({ player, size = "md", showFavorite = true }: Props) => {
   return (
     <Link
       to={`/player/${playerSlug(player.name, player.id)}`}
+      state={{ player }}
       className="group card-premium relative flex flex-col items-center rounded-2xl p-3 overflow-hidden animate-in"
     >
       <div className="absolute top-2 left-2 z-10 flex flex-col gap-1">

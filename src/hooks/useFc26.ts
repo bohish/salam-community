@@ -1,14 +1,17 @@
 import { useQuery } from "@tanstack/react-query";
 import { fc26Api } from "@/services/fc26Api";
+import type { Player } from "@/types/player";
 
 const HOUR = 60 * 60 * 1000;
 const DAY = 24 * HOUR;
 
-export const usePlayerById = (id?: number | string | null) =>
+export const usePlayerById = (id?: number | string | null, initialPlayer?: Player) =>
   useQuery({
     queryKey: ["fc26", "player", "id", id],
     queryFn: ({ signal }) => fc26Api.getById(id!, signal),
     enabled: id != null && id !== "",
+    initialData: initialPlayer,
+    initialDataUpdatedAt: initialPlayer ? Date.now() : undefined,
     staleTime: HOUR,
   });
 

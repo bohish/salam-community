@@ -6,6 +6,7 @@ import { playerSlug } from "@/lib/slug";
 const PlayerListRow = ({ player }: { player: Player }) => (
   <Link
     to={`/player/${playerSlug(player.name, player.id)}`}
+    state={{ player }}
     className="group glass hover:glass-strong flex items-center gap-3 p-3 rounded-2xl transition-fluid hover-lift"
   >
     <div className="w-12 h-16 flex-shrink-0 flex items-center justify-center">

@@ -4,7 +4,7 @@ import { futggApi, displayName, type FutGgPlayer } from "@/services/futggApi";
 const BASE = "https://api.msmc.cc/api/fc26";
 
 /** Map a FUT.GG player object into the app's Player shape. */
-const futggToPlayer = (p: FutGgPlayer): Player => {
+export const futggToPlayer = (p: FutGgPlayer): Player => {
   const id = p.basePlayerEaId ?? p.eaId;
   const name = displayName(p) || p.cardName || `${p.firstName ?? ""} ${p.lastName ?? ""}`.trim();
   const fs = p.faceStatsV2;
@@ -74,25 +74,22 @@ async function pool<T>(items: number[], limit: number, worker: (n: number) => Pr
 async function fetchPlayerFromFutgg(id: number | string, signal?: AbortSignal): Promise<Player | null> {
   const idStr = String(id).trim();
   if (!idStr) return null;
-  // Try as basePlayerEaId (base card group), then as eaId (specific card version).
-  const tryPaths = [
-    `/players/v2/26/?basePlayerEaId=${encodeURIComponent(idStr)}&sort=-overall`,
-    `/players/v2/26/?eaId=${encodeURIComponent(idStr)}`,
-  ];
-  for (const path of tryPaths) {
-    try {
-      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/futgg-proxy?path=${encodeURIComponent(path)}`;
-      const res = await fetch(url, { signal, headers: { Accept: "application/json" } });
-      if (!res.ok) continue;
-      const json = await res.json() as { data?: FutGgPlayer[] };
-      const list = json?.data ?? [];
-      if (list.length === 0) continue;
-      // Prefer the base gold card if present, else highest-overall version.
-      const base = list.find((p) => !p.isSpecial && !p.isIcon && !p.isHero);
-      const best = base ?? [...list].sort((a, b) => b.overall - a.overall)[0];
-      return futggToPlayer(best);
-    } catch { /* try next */ }
-  }
+  const matches = (p: FutGgPlayer) =>
+    [p.id, p.eaId, p.basePlayerEaId].some((candidate) => String(candidate ?? "") === idStr);
+
+  // FUT.GG silently ignores unsupported ID filters and returns the first page.
+  // Search the actual lists and validate IDs so a failed lookup can never become Bellingham.
+  try {
+    const [ranked, specials] = await Promise.all([
+      futggApi.fetchTopRated(200, signal),
+      futggApi.fetchAllSpecial(8, signal),
+    ]);
+    const exact = [...ranked, ...specials].filter(matches);
+    if (exact.length) {
+      const requestedVersion = exact.find((p) => String(p.eaId) === idStr || String(p.id) === idStr);
+      return futggToPlayer(requestedVersion ?? exact.sort((a, b) => b.overall - a.overall)[0]);
+    }
+  } catch { /* fall through to the legacy source */ }
   return null;
 }
 
