@@ -93,7 +93,7 @@ const ComparePage = () => {
               <div className="w-full aspect-[3/4] flex items-center justify-center">
                 {p.cardUrl && <img src={p.cardUrl} alt={p.name} loading="lazy" className="max-h-full object-contain drop-shadow-2xl" />}
               </div>
-              <Link to={`/player/${playerSlug(p.name, p.id)}`} className="block mt-2 text-center">
+              <Link to={`/player/${playerSlug(p.name, p.id)}`} state={{ player: p }} className="block mt-2 text-center">
                 <p className="font-black text-sm truncate">{p.name}</p>
                 <p className="text-[10px] text-muted-foreground truncate">{p.club}</p>
               </Link>

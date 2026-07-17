@@ -4,6 +4,8 @@ import { Helmet } from "react-helmet-async";
 import { Sparkles, ArrowUpDown } from "lucide-react";
 import { usePlayersByPromo } from "@/hooks/useFutgg";
 import { categoryLabel, displayName, type FutGgPlayer } from "@/services/futggApi";
+import { futggToPlayer } from "@/services/fc26Api";
+import { playerSlug } from "@/lib/slug";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import { PlayerCardSkeleton } from "@/components/Skeleton";
 
@@ -13,7 +15,8 @@ const EventPlayer = ({ p }: { p: FutGgPlayer }) => {
   const img = p.cardImageUrl || p.simpleCardImageUrl || p.imageUrl;
   return (
     <Link
-      to={`/player/${p.eaId}`}
+      to={`/player/${playerSlug(displayName(p), p.eaId)}`}
+      state={{ player: futggToPlayer(p) }}
       className="glass hover:glass-strong rounded-2xl p-3 flex flex-col items-center gap-2 transition-fluid group"
     >
       <div className="relative w-full aspect-[3/4] flex items-center justify-center overflow-hidden">
