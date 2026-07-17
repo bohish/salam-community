@@ -88,10 +88,10 @@ export const fc26Api = {
       throw e;
     }
   },
-  /** Top N players by rank (batched with limited concurrency). */
+  /** Top N players — sourced from FUT.GG (msmc's rank API is heavily rate-limited). */
   async getTopRanked(count: number, signal?: AbortSignal): Promise<Player[]> {
-    const ranks = Array.from({ length: count }, (_, i) => i + 1);
-    return pool(ranks, 12, (r) => req<RawPlayer>(`/player/rank/${r}`, signal).then(toPlayer));
+    const list = await futggApi.fetchTopRated(count, signal);
+    return list.map(futggToPlayer).sort((a, b) => b.rating - a.rating);
   },
   async getRandom(gender?: "M" | "F", signal?: AbortSignal): Promise<Player> {
     const raw = await req<RawPlayer>(gender ? `/random/${gender}` : "/random", signal);
