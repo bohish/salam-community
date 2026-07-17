@@ -1,6 +1,43 @@
 import { normalizePlayer, type Player, type RawPlayer } from "@/types/player";
+import { futggApi, displayName, type FutGgPlayer } from "@/services/futggApi";
 
 const BASE = "https://api.msmc.cc/api/fc26";
+
+/** Map a FUT.GG player object into the app's Player shape. */
+const futggToPlayer = (p: FutGgPlayer): Player => {
+  const id = p.basePlayerEaId ?? p.eaId;
+  const name = displayName(p) || p.cardName || `${p.firstName ?? ""} ${p.lastName ?? ""}`.trim();
+  const fs = p.faceStatsV2;
+  return {
+    id,
+    rank: 0,
+    name,
+    gender: "M",
+    rating: p.overall,
+    position: p.position ?? "",
+    altPositions: p.alternativePositions ?? [],
+    pace: fs?.facePace ?? 0,
+    shooting: fs?.faceShooting ?? 0,
+    passing: fs?.facePassing ?? 0,
+    dribbling: fs?.faceDribbling ?? 0,
+    defending: fs?.faceDefending ?? 0,
+    physical: fs?.facePhysicality ?? 0,
+    weakFoot: p.weakFoot ?? 0,
+    skillMoves: p.skillMoves ?? 0,
+    preferredFoot: p.foot ?? "",
+    height: p.height ? `${p.height}cm` : "",
+    weight: "",
+    age: 0,
+    nation: p.nation?.name ?? "",
+    league: p.league?.name ?? "",
+    club: p.club?.name ?? "",
+    playStyles: [],
+    cardUrl: p.cardImageUrl || p.imageUrl || p.simpleCardImageUrl || "",
+    eaUrl: p.url ?? "",
+    isGK: (p.position ?? "") === "GK",
+    raw: { ID: String(id), Name: name, OVR: String(p.overall), Position: p.position } as unknown as RawPlayer,
+  };
+};
 
 class ApiError extends Error {
   constructor(message: string, public status?: number) { super(message); }
@@ -51,10 +88,10 @@ export const fc26Api = {
       throw e;
     }
   },
-  /** Top N players by rank (batched with limited concurrency). */
+  /** Top N players — sourced from FUT.GG (msmc's rank API is heavily rate-limited). */
   async getTopRanked(count: number, signal?: AbortSignal): Promise<Player[]> {
-    const ranks = Array.from({ length: count }, (_, i) => i + 1);
-    return pool(ranks, 12, (r) => req<RawPlayer>(`/player/rank/${r}`, signal).then(toPlayer));
+    const list = await futggApi.fetchTopRated(count, signal);
+    return list.map(futggToPlayer).sort((a, b) => b.rating - a.rating);
   },
   async getRandom(gender?: "M" | "F", signal?: AbortSignal): Promise<Player> {
     const raw = await req<RawPlayer>(gender ? `/random/${gender}` : "/random", signal);
