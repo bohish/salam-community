@@ -6,6 +6,7 @@ import PlayerListRow from "@/components/PlayerListRow";
 import SearchSuggestions from "@/components/SearchSuggestions";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import { PlayerRowSkeleton } from "@/components/Skeleton";
+import { rankPlayers } from "@/lib/searchRanking";
 
 const SearchPage = () => {
   const [params] = useSearchParams();
@@ -13,7 +14,7 @@ const SearchPage = () => {
   const [q, setQ] = useState(initial);
   useEffect(() => setQ(params.get("q") ?? ""), [params]);
 
-  const pool = usePlayerPool(150);
+  const pool = usePlayerPool(200);
   const trimmed = q.trim();
   const isNumeric = /^\d+$/.test(trimmed);
   const remote = usePlayerByName(!isNumeric && trimmed.length >= 3 ? trimmed : "");
@@ -21,12 +22,9 @@ const SearchPage = () => {
   const results = useMemo(() => {
     const list = pool.data ?? [];
     if (!trimmed) return list;
-    const s = trimmed.toLowerCase();
-    const local = list.filter(
-      (p) => p.name.toLowerCase().includes(s) || p.club.toLowerCase().includes(s) || p.nation.toLowerCase().includes(s)
-    );
-    if (remote.data && !local.find((p) => p.id === remote.data!.id)) return [remote.data, ...local];
-    return local;
+    const merged = list.slice();
+    if (remote.data && !merged.find((p) => p.id === remote.data!.id)) merged.unshift(remote.data);
+    return rankPlayers(merged, trimmed);
   }, [pool.data, remote.data, trimmed]);
 
   return (
