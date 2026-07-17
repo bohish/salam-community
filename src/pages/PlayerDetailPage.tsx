@@ -12,15 +12,25 @@ import PlayerListRow from "@/components/PlayerListRow";
 import { parseIdFromSlug, playerSlug } from "@/lib/slug";
 import { futggApi, displayName, categoryLabel, type FutGgPlayer } from "@/services/futggApi";
 
-const StatBar = ({ label, value }: { label: string; value: number }) => {
-  const color = value >= 85 ? "bg-primary" : value >= 70 ? "bg-accent" : value >= 50 ? "bg-gold" : "bg-destructive";
+const statColor = (v: number) =>
+  v >= 85 ? "text-primary" : v >= 70 ? "text-accent" : v >= 50 ? "text-gold" : "text-destructive";
+
+const StatRow = ({ label, value }: { label: string; value: number }) => (
+  <div className="flex items-center justify-between text-sm py-1.5 border-b border-border/40 last:border-0">
+    <span className="text-foreground/80">{label}</span>
+    <span className={`font-black tabular-nums ${statColor(value)}`}>{value}</span>
+  </div>
+);
+
+const StatRing = ({ value }: { value: number }) => {
+  const pct = Math.min(100, value);
+  const color = value >= 85 ? "hsl(var(--primary))" : value >= 70 ? "hsl(var(--accent))" : value >= 50 ? "hsl(var(--gold))" : "hsl(var(--destructive))";
   return (
-    <div className="flex items-center gap-3 text-xs">
-      <span className="w-28 shrink-0 text-muted-foreground">{label}</span>
-      <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
-        <div className={`h-full ${color} transition-all`} style={{ width: `${Math.min(100, value)}%` }} />
-      </div>
-      <span className="w-8 text-right font-bold">{value}</span>
+    <div
+      className="w-11 h-11 rounded-full flex items-center justify-center text-xs font-black shrink-0"
+      style={{ background: `conic-gradient(${color} ${pct * 3.6}deg, hsl(var(--muted)) 0deg)` }}
+    >
+      <div className="w-8 h-8 rounded-full bg-card flex items-center justify-center">{value}</div>
     </div>
   );
 };
