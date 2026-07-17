@@ -122,7 +122,7 @@ const PlayerDetailPage = () => {
     navigate("/compare");
   };
 
-  const foot = player.foot || (player.raw["Preferred Foot"] as string) || "—";
+  const foot = (player.raw["Preferred Foot"] as string) || (player.raw["foot"] as string) || "—";
   const height = player.raw["Height"] || player.raw["height"];
   const weight = player.raw["Weight"] || player.raw["weight"];
   const wf = Number(player.raw["Weak Foot"] || player.raw["weakFoot"] || 3);
