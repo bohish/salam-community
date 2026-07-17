@@ -15,10 +15,10 @@ const AppHeader = () => {
         <div className="flex items-center justify-between h-14 gap-3">
           <button onClick={() => navigate("/")} className="flex items-center gap-2 shrink-0 group">
             <div className="w-9 h-9 rounded-xl bg-gradient-primary flex items-center justify-center shadow-lg glow-hover">
-              <span className="font-black text-primary-foreground text-sm">FH</span>
+              <span className="font-black text-primary-foreground text-sm">FM</span>
             </div>
             <div className="hidden sm:block text-right">
-              <h1 className="font-black text-lg leading-none text-foreground">FUT<span className="text-gradient-primary">HUB</span></h1>
+              <h1 className="font-black text-lg leading-none text-foreground">FUT<span className="text-gradient-primary">MAC</span></h1>
               <p className="text-[9px] text-muted-foreground leading-tight">EA FC 26 Database</p>
             </div>
           </button>
