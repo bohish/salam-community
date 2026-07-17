@@ -13,6 +13,7 @@ export interface FutGgFaceStats {
 export interface FutGgPlayer {
   id: number;
   eaId: number;
+  basePlayerEaId?: number;
   slug: string;
   basePlayerSlug: string;
   firstName: string;
