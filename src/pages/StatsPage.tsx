@@ -60,7 +60,7 @@ const StatsPage = () => {
   return (
     <div className="container mx-auto px-4 py-4 max-w-3xl">
       <Helmet>
-        <title>{category.label} — FUTHUB FC 26</title>
+        <title>{category.label} — FUTMAC FC 26</title>
         <meta name="description" content={`${category.description} قائمة أفضل 50 لاعباً.`} />
         <link rel="canonical" href={`/stats/${category.slug}`} />
       </Helmet>

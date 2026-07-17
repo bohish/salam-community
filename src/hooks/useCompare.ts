@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
-const KEY = "futhub:compare";
+const KEY = "futmac:compare";
 const MAX = 4;
 
 const read = (): string[] => {

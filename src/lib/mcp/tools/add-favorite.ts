@@ -14,7 +14,7 @@ function supabaseForUser(ctx: ToolContext) {
 export default defineTool({
   name: "add_favorite",
   title: "Add favorite player",
-  description: "Add an FC 26 player to the signed-in user's FUTHUB favorites.",
+  description: "Add an FC 26 player to the signed-in user's FUTMAC favorites.",
   inputSchema: {
     player_id: z.number().int().positive().describe("Player ID to add."),
   },

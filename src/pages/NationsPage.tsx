@@ -8,7 +8,7 @@ import { entitySlug } from "@/lib/slug";
 const NationsPage = () => (
   <div className="container mx-auto px-4 py-4 max-w-3xl">
     <Helmet>
-      <title>المنتخبات — FUTHUB FC 26</title>
+      <title>المنتخبات — FUTMAC FC 26</title>
       <meta name="description" content="تصفح لاعبي المنتخبات في EA SPORTS FC 26." />
       <link rel="canonical" href="/nations" />
     </Helmet>

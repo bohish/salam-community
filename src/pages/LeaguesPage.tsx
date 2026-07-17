@@ -8,7 +8,7 @@ import { entitySlug } from "@/lib/slug";
 const LeaguesPage = () => (
   <div className="container mx-auto px-4 py-4 max-w-3xl">
     <Helmet>
-      <title>الدوريات — FUTHUB FC 26</title>
+      <title>الدوريات — FUTMAC FC 26</title>
       <meta name="description" content="أشهر دوريات EA SPORTS FC 26 وأنديتها." />
       <link rel="canonical" href="/leagues" />
     </Helmet>

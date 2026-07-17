@@ -66,7 +66,7 @@ const PlayerDetailPage = () => {
   return (
     <div className="container mx-auto px-4 py-4 max-w-4xl">
       <Helmet>
-        <title>{player.name} · {player.rating} {player.position} — FUTHUB FC 26</title>
+        <title>{player.name} · {player.rating} {player.position} — FUTMAC FC 26</title>
         <meta name="description" content={`إحصائيات وتفاصيل ${player.name} في EA SPORTS FC 26. تقييم ${player.rating}, ${player.club} · ${player.nation}.`} />
         <link rel="canonical" href={canonical} />
         <meta property="og:title" content={`${player.name} — ${player.rating} ${player.position}`} />
