@@ -20,8 +20,8 @@ const ChemistryViz = ({ player }: { player: Player }) => (
     <div className="h-px bg-primary/40" />
     <div className="p-4">
       <div className="flex items-baseline justify-between mb-4">
-        <h3 className="text-[11px] font-semibold tracking-[0.18em] uppercase text-muted-foreground">Chemistry</h3>
         <span className="font-mono-num text-[13px] font-semibold text-foreground/90">3 / 3</span>
+        <h3 className="text-[11px] font-semibold tracking-[0.18em] uppercase text-muted-foreground">Chemistry</h3>
       </div>
       <div className="flex items-start gap-5">
         <Node label="Club" entity={player.club} value={3} />
