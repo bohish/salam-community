@@ -12,15 +12,15 @@ import { playerSlug } from "@/lib/slug";
 const StatRow = ({ label, values }: { label: string; values: (number | undefined)[] }) => {
   const max = Math.max(...values.map((v) => v ?? 0), 1);
   return (
-    <div className="grid grid-cols-[80px_1fr] items-center gap-2 py-1.5 border-b border-border/40 last:border-0">
-      <span className="text-[11px] text-muted-foreground truncate">{label}</span>
-      <div className={`grid grid-cols-${values.length} gap-1.5`} style={{ gridTemplateColumns: `repeat(${values.length}, minmax(0, 1fr))` }}>
+    <div className="grid grid-cols-[1fr_80px] items-center gap-2 py-1.5 border-b border-border/40 last:border-0">
+      <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${values.length}, minmax(0, 1fr))` }}>
         {values.map((v, i) => (
           <span key={i} className={`text-center text-sm font-bold ${v === max && v ? "text-primary" : "text-foreground/80"}`}>
             {v ?? "—"}
           </span>
         ))}
       </div>
+      <span className="text-[11px] text-muted-foreground truncate text-left">{label}</span>
     </div>
   );
 };
