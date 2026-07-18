@@ -28,9 +28,9 @@ const barClass = (v: number) => {
 };
 
 const SubStat = ({ label, value }: { label: string; value: number }) => (
-  <div className="flex items-center justify-between py-1 text-[12px]">
+  <div className="grid grid-cols-[1fr_2rem] items-center gap-2 py-1 text-[12px]">
     <span className="text-muted-foreground truncate">{label}</span>
-    <span className={`font-mono-num font-semibold tabular-nums ${toneClass(value)}`}>{value}</span>
+    <span className={`font-mono-num font-semibold tabular-nums text-right ${toneClass(value)}`}>{value}</span>
   </div>
 );
 
