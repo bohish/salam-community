@@ -3,8 +3,8 @@ import type { Player } from "@/types/player";
 const Node = ({ label, entity, value }: { label: string; entity: string; value: number }) => (
   <div className="flex-1 min-w-0">
     <div className="flex items-baseline justify-between mb-1.5">
-      <span className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">{label}</span>
       <span className="font-mono-num text-[12px] font-semibold tabular-nums text-foreground/90">{value}/3</span>
+      <span className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">{label}</span>
     </div>
     <div className="flex gap-1 mb-1.5">
       {[0, 1, 2].map((i) => (
