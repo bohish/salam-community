@@ -47,8 +47,8 @@ const CategoryBlock = ({
   return (
     <div className="py-3">
       <div className="flex items-baseline justify-between mb-2">
-        <h3 className="text-[12px] font-semibold uppercase tracking-[0.14em] text-foreground/90">{title}</h3>
         <span className={`font-mono-num text-[16px] font-semibold tabular-nums ${toneClass(value)}`}>{value}</span>
+        <h3 className="text-[12px] font-semibold uppercase tracking-[0.14em] text-foreground/90">{title}</h3>
       </div>
       <div className="h-[3px] w-full rounded-full bg-muted/40 overflow-hidden mb-2.5">
         <div className={`h-full rounded-full ${barClass(value)}`} style={{ width: `${width}%` }} />
