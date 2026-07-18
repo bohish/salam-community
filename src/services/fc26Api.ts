@@ -93,13 +93,24 @@ async function fetchPlayerFromFutgg(id: number | string, signal?: AbortSignal): 
   return null;
 }
 
+/** Merge detailed in-game stats from MSMC into a FUT.GG player. */
+async function enrichFromMsmc(player: Player, id: string, signal?: AbortSignal): Promise<Player> {
+  try {
+    const raw = await req<RawPlayer>(`/player/id/${encodeURIComponent(id)}`, signal);
+    if (!raw || !raw.ID) return player;
+    return { ...player, raw };
+  } catch {
+    return player;
+  }
+}
+
 export const fc26Api = {
   async getById(id: number | string, signal?: AbortSignal): Promise<Player> {
     const idStr = String(id).trim();
     if (!idStr) throw new ApiError("Missing player id");
     // 1) FUT.GG (via proxy) — primary source; stable and no rate limits for us.
     const fg = await fetchPlayerFromFutgg(idStr, signal);
-    if (fg) return fg;
+    if (fg) return enrichFromMsmc(fg, idStr, signal);
     // 2) Fallback to msmc direct — may 429 but worth trying.
     try {
       const raw = await req<RawPlayer>(`/player/id/${encodeURIComponent(idStr)}`, signal);

@@ -11,8 +11,9 @@ export const usePlayerById = (id?: number | string | null, initialPlayer?: Playe
     queryFn: ({ signal }) => fc26Api.getById(id!, signal),
     enabled: id != null && id !== "",
     initialData: initialPlayer,
-    initialDataUpdatedAt: initialPlayer ? Date.now() : undefined,
-    staleTime: HOUR,
+    // If we already have a player from the UI, show it instantly but refetch in the
+    // background to enrich detailed stats (MSMC has the full in-game attributes).
+    staleTime: initialPlayer ? 0 : HOUR,
   });
 
 export const usePlayerByName = (name: string) =>
