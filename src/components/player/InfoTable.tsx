@@ -4,8 +4,8 @@ const Row = ({ label, value }: { label: string; value: React.ReactNode }) => {
   if (value == null || value === "" || value === "—") return null;
   return (
     <div className="flex items-center justify-between text-[12px] py-2.5 border-b border-border/40 last:border-0">
-      <span className="text-muted-foreground">{label}</span>
       <span className="font-medium text-foreground/95 truncate max-w-[60%] text-right">{value}</span>
+      <span className="text-muted-foreground">{label}</span>
     </div>
   );
 };

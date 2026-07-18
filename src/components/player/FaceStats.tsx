@@ -28,9 +28,9 @@ const barClass = (v: number) => {
 };
 
 const SubStat = ({ label, value }: { label: string; value: number }) => (
-  <div className="grid grid-cols-[1fr_2rem] items-center gap-2 py-1 text-[12px]">
-    <span className="text-muted-foreground truncate">{label}</span>
+  <div className="grid grid-cols-[2rem_1fr] items-center gap-2 py-1 text-[12px]">
     <span className={`font-mono-num font-semibold tabular-nums text-right ${toneClass(value)}`}>{value}</span>
+    <span className="text-muted-foreground truncate text-left">{label}</span>
   </div>
 );
 
@@ -47,8 +47,8 @@ const CategoryBlock = ({
   return (
     <div className="py-3">
       <div className="flex items-baseline justify-between mb-2">
-        <h3 className="text-[12px] font-semibold uppercase tracking-[0.14em] text-foreground/90">{title}</h3>
         <span className={`font-mono-num text-[16px] font-semibold tabular-nums ${toneClass(value)}`}>{value}</span>
+        <h3 className="text-[12px] font-semibold uppercase tracking-[0.14em] text-foreground/90">{title}</h3>
       </div>
       <div className="h-[3px] w-full rounded-full bg-muted/40 overflow-hidden mb-2.5">
         <div className={`h-full rounded-full ${barClass(value)}`} style={{ width: `${width}%` }} />
