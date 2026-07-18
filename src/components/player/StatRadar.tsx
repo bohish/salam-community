@@ -21,19 +21,21 @@ const StatRadar = ({ player }: { player: Player }) => {
       ];
 
   return (
-    <div className="w-full h-64">
+    <div className="w-full h-56">
       <ResponsiveContainer>
         <RadarChart data={data} outerRadius="78%">
-          <defs>
-            <radialGradient id="radarFill">
-              <stop offset="0%" stopColor="hsl(var(--primary-glow))" stopOpacity={0.55} />
-              <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0.25} />
-            </radialGradient>
-          </defs>
           <PolarGrid stroke="hsl(var(--border))" strokeOpacity={0.5} />
-          <PolarAngleAxis dataKey="k" tick={{ fill: "hsl(var(--foreground))", fontSize: 11, fontWeight: 800 }} />
+          <PolarAngleAxis dataKey="k" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10.5, fontWeight: 600, letterSpacing: 1 }} />
           <PolarRadiusAxis domain={[0, 100]} tick={false} axisLine={false} />
-          <Radar dataKey="v" stroke="hsl(var(--primary))" strokeWidth={2} fill="url(#radarFill)" isAnimationActive animationDuration={900} />
+          <Radar
+            dataKey="v"
+            stroke="hsl(var(--primary))"
+            strokeWidth={1.5}
+            fill="hsl(var(--primary))"
+            fillOpacity={0.18}
+            isAnimationActive
+            animationDuration={700}
+          />
         </RadarChart>
       </ResponsiveContainer>
     </div>

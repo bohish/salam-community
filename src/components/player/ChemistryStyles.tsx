@@ -1,7 +1,6 @@
 import { useState } from "react";
 import type { Player } from "@/types/player";
 
-// Curated chemistry styles + their stat boosts (3-chem values).
 const STYLES = [
   { key: "Basic",     boosts: { pace: 3, shooting: 3, passing: 3, dribbling: 3, defending: 3, physical: 3 } },
   { key: "Sniper",    boosts: { shooting: 6, dribbling: 6 } },
@@ -38,37 +37,40 @@ const ChemistryStyles = ({ player }: { player: Player }) => {
   const boosts = STYLES.find((s) => s.key === active)?.boosts as Partial<Record<Key, number>>;
 
   return (
-    <div className="glass-strong rounded-2xl p-4">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-black tracking-wider uppercase">أنماط الكيمياء</h3>
-        <span className="text-[10px] text-muted-foreground">3 كيمياء</span>
-      </div>
-      <div className="flex flex-wrap gap-1.5 mb-4">
-        {STYLES.map((s) => (
-          <button
-            key={s.key}
-            onClick={() => setActive(s.key)}
-            className={`px-2.5 py-1 rounded-lg text-[10px] font-black transition-all ${
-              active === s.key
-                ? "bg-gradient-primary text-primary-foreground shadow-lg scale-105"
-                : "glass hover:border-primary/40 text-foreground/80"
-            }`}
-          >{s.key}</button>
-        ))}
-      </div>
-      <div className="grid grid-cols-6 gap-2">
-        {KEYS.map(({ k, label }) => {
-          const base = player[k];
-          const boost = boosts?.[k] ?? 0;
-          const total = cap(base + boost);
-          return (
-            <div key={k} className="glass rounded-xl p-2 text-center">
-              <p className="text-[9px] font-black tracking-widest text-muted-foreground">{label}</p>
-              <p className="text-lg font-black tabular-nums text-foreground">{total}</p>
-              {boost > 0 && <p className="text-[9px] font-black text-primary">+{boost}</p>}
-            </div>
-          );
-        })}
+    <div className="rounded-lg border border-border/60 bg-card/40 overflow-hidden">
+      <div className="h-px bg-primary/40" />
+      <div className="p-4">
+        <div className="flex items-baseline justify-between mb-3">
+          <h3 className="text-[11px] font-semibold tracking-[0.18em] uppercase text-muted-foreground">Chemistry Styles</h3>
+          <span className="text-[10.5px] text-muted-foreground">3 chem</span>
+        </div>
+        <div className="flex flex-wrap gap-1 mb-4">
+          {STYLES.map((s) => (
+            <button
+              key={s.key}
+              onClick={() => setActive(s.key)}
+              className={`px-2 py-1 rounded text-[10.5px] font-medium border transition-colors ${
+                active === s.key
+                  ? "border-primary/50 bg-primary/10 text-primary"
+                  : "border-border/50 text-muted-foreground hover:text-foreground hover:border-border"
+              }`}
+            >{s.key}</button>
+          ))}
+        </div>
+        <div className="grid grid-cols-6 gap-2">
+          {KEYS.map(({ k, label }) => {
+            const base = player[k];
+            const boost = boosts?.[k] ?? 0;
+            const total = cap(base + boost);
+            return (
+              <div key={k} className="p-2 text-center border border-border/50 rounded-md bg-background/40">
+                <p className="text-[10px] font-medium tracking-[0.12em] text-muted-foreground">{label}</p>
+                <p className="text-[15px] font-semibold tabular-nums text-foreground mt-0.5">{total}</p>
+                {boost > 0 && <p className="text-[10px] font-medium text-primary">+{boost}</p>}
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
