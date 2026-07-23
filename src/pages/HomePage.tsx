@@ -6,6 +6,7 @@ import { useAllPromos } from "@/hooks/useFutgg";
 import PlayerCard from "@/components/PlayerCard";
 import PlayerListRow from "@/components/PlayerListRow";
 import SearchSuggestions from "@/components/SearchSuggestions";
+import RefreshButton from "@/components/RefreshButton";
 import { PlayerCardSkeleton, PlayerRowSkeleton } from "@/components/Skeleton";
 
 const QuickLink = ({ to, icon: Icon, label }: { to: string; icon: any; label: string }) => (
@@ -95,7 +96,12 @@ const HomePage = () => {
 
       <Section
         title="أحداث حية"
-        action={<Link to="/events" className="text-xs text-primary flex items-center gap-1">عرض الكل <ArrowLeft className="w-3 h-3" /></Link>}
+        action={
+          <div className="flex items-center gap-3">
+            <RefreshButton />
+            <Link to="/events" className="text-xs text-primary flex items-center gap-1">عرض الكل <ArrowLeft className="w-3 h-3" /></Link>
+          </div>
+        }
       >
         {promosLoading && (
           <div className="flex gap-3 overflow-x-auto hide-scrollbar -mx-4 px-4">
