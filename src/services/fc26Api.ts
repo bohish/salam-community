@@ -81,7 +81,7 @@ async function fetchPlayerFromFutgg(id: number | string, signal?: AbortSignal): 
   // Search the actual lists and validate IDs so a failed lookup can never become Bellingham.
   try {
     const [ranked, specials] = await Promise.all([
-      futggApi.fetchTopRated(200, signal),
+      futggApi.fetchTopRated(500, signal),
       futggApi.fetchAllSpecial(8, signal),
     ]);
     const exact = [...ranked, ...specials].filter(matches);
