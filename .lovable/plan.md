@@ -1,52 +1,52 @@
-## المصدر المتوفر
-جربت API الآن والنتائج:
-- `GET /players/v2/26/?isSpecial=1&page=N` → يرجّع **كل لاعبي الأحداث الخاصة** (البروموات + Icons + Heroes)، مع اسم البروموو في `rarityName` (مثل: `Festival of Football: Path to Glory`, `Glory Hunters`, `Star Performer`…).
-- `GET /upgrade-hub/26/?page=N` → أحدث الترقيات (نستخدمه لتبويب "الجديد").
-- `GET /players/v2/search/?query=…&game=26` → بحث.
-- `GET /evolutions/v2/26/v3/all/?page=N` و `GET /sbc/26/?page=N` → التطويرات و SBCs.
-- ❌ لا يوجد endpoint واحد يرجّع "قائمة البروموات". الحل: نستخرجها ديناميكياً من `rarityName` لكل اللاعبين الخاصين.
+# لماذا لا يتم إضافة اللاعبين الجدد تلقائياً؟
 
-## الخطة
+## الوضع الحالي (الحقيقة التقنية)
 
-### 1) `src/services/futggApi.ts`
-- إضافة `listSpecialPlayers(page)` = `/players/v2/26/?isSpecial=1&page=…`.
-- إضافة `fetchAllSpecial(maxPages=10)`: يجيب أول N صفحات بالتوازي (React Query cache).
-- إضافة helper `groupByPromo(players)` يرجع خريطة `{ promoName: FutGgPlayer[] }` + `promoSlug(name)`.
+الموقع **مربوط فعلياً بـ API حيّ**، لكن هناك سوء فهم شائع نوضحه:
 
-### 2) `src/hooks/useFutgg.ts`
-- `useSpecialPlayers(page)` — صفحة واحدة.
-- `useAllPromos()` — يجيب 8-10 صفحات ويجمعها في قائمة بروموات مرتبة بأحدث لاعب + العدد.
-- `usePlayersByPromo(promoSlug)` — يفلتر النتيجة أعلاه.
+- **لا توجد قاعدة بيانات لاعبين في Lovable Cloud.** جدول `favorites` فقط يحفظ المفضلة للمستخدمين.
+- كل بيانات اللاعبين تُسحب **لحظياً** من مصدرين خارجيين:
+  1. `https://api.msmc.cc/api/fc26` — قاعدة EA FC 26 (كل اللاعبين + الإحصائيات التفصيلية).
+  2. `https://www.fut.gg/api/fut` عبر Edge Function `futgg-proxy` — للأحداث والبطاقات الخاصة (TOTW/TOTY/Promos).
 
-### 3) إعادة هيكلة `src/pages/EventsPage.tsx`
-تبويبات أعلى الصفحة:
-- **البروموات** (افتراضي): شبكة بطاقات لكل بروموو نشط (اسم + عدد اللاعبين + أعلى تقييم + معاينة أول 3 صور). ضغطة → `/event/:slug`.
-- **الجديد**: من `upgradeHub` (الحالي).
-- **Icons** / **Heroes**: كما هو.
-- **Evolutions** / **SBC**: كما هو.
+## إذاً لماذا "لا تظهر" اللاعبين الجدد؟
 
-### 4) صفحة تفصيل الحدث — جديدة
-`src/pages/EventDetailPage.tsx` على `/event/:slug`:
-- Header بلون البروموو + اسمه + العدد.
-- Grid كامل بلاعبي هذا الحدث + فرز حسب التقييم/الموقع.
-- Breadcrumbs + Skeleton + SEO.
+الأسباب المحتملة، مرتبة:
 
-### 5) تحديث `App.tsx`
-إضافة `<Route path="/event/:slug" element={<EventDetailPage />} />`.
+1. **React Query Cache**: البيانات مخزّنة في ذاكرة المتصفح لمدة ساعة (`staleTime: 60*60*1000`). حتى لو حدّث المصدر، المستخدم يرى النسخة القديمة حتى ينتهي الوقت أو يعمل Hard Refresh.
+2. **مصدر البيانات نفسه**: `api.msmc.cc` و `fut.gg` يتحدثان بجدولهما الخاص (عادة أسبوعياً مع تحديثات EA). إذا EA لم تُصدر بطاقة بعد، لن تظهر عندنا مهما فعلنا.
+3. **Fut.gg proxy caching**: الـ Edge Function تضيف `cache-control: max-age=300` (5 دقائق CDN cache).
+4. **قوائم محدودة**: `fetchTopRated(200)` تجلب فقط أعلى 200 لاعب — إذا اللاعب الجديد خارج التصنيف قد لا يظهر في بعض الصفحات.
 
-### 6) `HomePage.tsx`
-كاروسيل جديد "أحداث حية" أعلى الصفحة يعرض أول 6 بروموات.
+## الخطة — ثلاثة تحسينات
 
-## ما يتضمنه فعلياً
-كل الأحداث الجارية في FC 26 (Festival of Football, Path to Glory, Glory Hunters, Star Performer, TOTS/TOTY/TOTW حين تصدر، Icons، Heroes) — بشكل ديناميكي بدون هاردكود، لأن أي بروموو جديد يظهر تلقائياً حين يضيفه FUT.GG.
+### 1. زر "تحديث فوري" + مؤشر آخر تحديث
+- إضافة زر في `HomePage` و `EventsPage` يقوم بـ `queryClient.invalidateQueries()` لإعادة جلب البيانات فوراً.
+- عرض توقيت آخر تحديث ("آخر تحديث قبل ٣ دقائق").
 
-## للجانب التقني
-```text
-src/services/futggApi.ts   (+ listSpecialPlayers, groupByPromo, promoSlug)
-src/hooks/useFutgg.ts      (+ useSpecialPlayers, useAllPromos, usePlayersByPromo)
-src/pages/EventsPage.tsx   (تبويب "البروموات" افتراضي + شبكة بطاقات بروموات)
-src/pages/EventDetailPage.tsx  (جديد)
-src/App.tsx                (route جديد)
-src/pages/HomePage.tsx     (كاروسيل بروموات حية)
-```
-لا تغييرات على قاعدة البيانات.
+### 2. تقليل زمن التخزين المؤقت للأحداث
+- في `useFutgg.ts` و صفحات الأحداث: خفض `staleTime` من ساعة إلى **10 دقائق** فقط لبطاقات الأحداث (TOTW/Promos)، مع الإبقاء على ساعة للاعبين الأساسيين (تقييمهم لا يتغير).
+- إضافة `refetchOnWindowFocus: true` للأحداث.
+
+### 3. توسيع نطاق السحب
+- زيادة `fetchTopRated` من 200 إلى **500** في صفحة اللاعبين والبحث لتغطية اللاعبين الجدد ذوي التقييم المتوسط.
+- إضافة `fetchAllSpecial` بشكل دوري لجلب أحدث البطاقات الخاصة.
+
+### 4. صفحة "الجديد" (اختياري إذا وافقت)
+- تبويب جديد يعرض أحدث البطاقات المُضافة من FUT.GG خلال آخر ٧ أيام (endpoint `/players/latest`).
+
+## تفاصيل تقنية
+
+**الملفات المتأثرة:**
+- `src/hooks/useFutgg.ts` — تعديل `staleTime` و `refetchOnWindowFocus`.
+- `src/services/fc26Api.ts` — رفع حد `getTopRanked`.
+- `src/pages/HomePage.tsx` و `src/pages/EventsPage.tsx` — إضافة زر التحديث + مؤشر الوقت.
+- `supabase/functions/futgg-proxy/index.ts` — تقليل `max-age` من 300 إلى 60 ثانية للـ endpoints الخاصة بالأحداث.
+
+**لا نحتاج:**
+- إضافة جدول لاعبين في Lovable Cloud (سيتضاعف العمل + بيانات EA تتغير).
+- Cron job — الـ APIs مباشرة تكفي مع إبطال الكاش الذكي.
+
+## سؤال قبل التنفيذ
+
+هل تريد الأربعة كلها، أم فقط أول ٣ (بدون صفحة "الجديد" المنفصلة)؟
