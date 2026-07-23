@@ -30,7 +30,7 @@ Deno.serve(async (req) => {
       headers: {
         ...corsHeaders,
         "content-type": upstream.headers.get("content-type") ?? "application/json",
-        "cache-control": "public, max-age=300",
+        "cache-control": "public, max-age=60, s-maxage=60",
       },
     });
   } catch (e) {

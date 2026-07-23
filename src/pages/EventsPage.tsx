@@ -7,6 +7,7 @@ import { categoryLabel, displayName, type FutGgPlayer, type PromoGroup } from "@
 import { futggToPlayer } from "@/services/fc26Api";
 import { playerSlug } from "@/lib/slug";
 import Breadcrumbs from "@/components/Breadcrumbs";
+import RefreshButton from "@/components/RefreshButton";
 import { PlayerCardSkeleton } from "@/components/Skeleton";
 
 type Tab = "promos" | "new" | "special" | "icon" | "hero" | "evo" | "sbc" | "obj";
@@ -113,13 +114,18 @@ const EventsPage = () => {
 
       <Breadcrumbs items={[{ label: "الأحداث والكروت" }]} />
 
-      <div className="flex items-center gap-2 mb-1">
-        <Sparkles className="w-4 h-4 text-primary" />
-        <h1 className="text-2xl font-black">الأحداث والكروت</h1>
+      <div className="flex items-start justify-between gap-3 mb-1">
+        <div>
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-primary" />
+            <h1 className="text-2xl font-black">الأحداث والكروت</h1>
+          </div>
+          <p className="text-xs text-muted-foreground mt-1 mb-4">
+            كل الإصدارات الحية في EA FC 26 · مصدر: FUT.GG
+          </p>
+        </div>
+        <RefreshButton />
       </div>
-      <p className="text-xs text-muted-foreground mb-4">
-        كل الإصدارات الحية في EA FC 26 · مصدر: FUT.GG
-      </p>
 
       <div className="flex gap-2 overflow-x-auto hide-scrollbar -mx-4 px-4 mb-4">
         {TABS.map((t) => (
