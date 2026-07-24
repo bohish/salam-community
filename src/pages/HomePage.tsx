@@ -1,12 +1,13 @@
 import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { Trophy, Users, Globe2, Shield, Sparkles, ArrowLeft, GitCompare, BarChart3 } from "lucide-react";
+import { Trophy, Users, Globe2, Shield, Sparkles, ArrowLeft, GitCompare, BarChart3, Zap } from "lucide-react";
 import { useTopRanked, useRandomBatch } from "@/hooks/useFc26";
-import { useAllPromos } from "@/hooks/useFutgg";
+import { useAllPromos, useNewPlayers } from "@/hooks/useFutgg";
 import PlayerCard from "@/components/PlayerCard";
 import PlayerListRow from "@/components/PlayerListRow";
 import SearchSuggestions from "@/components/SearchSuggestions";
 import RefreshButton from "@/components/RefreshButton";
+import { NewPlayerCard } from "@/pages/NewPlayersPage";
 import { PlayerCardSkeleton, PlayerRowSkeleton } from "@/components/Skeleton";
 
 const QuickLink = ({ to, icon: Icon, label }: { to: string; icon: any; label: string }) => (
