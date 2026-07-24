@@ -133,12 +133,23 @@ async function toolTop(args: any) {
     const position = args.position ? String(args.position).toUpperCase() : null;
     const nation = args.nation ? String(args.nation).toLowerCase() : null;
     const league = args.league ? String(args.league).toLowerCase() : null;
-    // Pull a wider slice then filter locally.
-    const raw = await fetchJson(`${MSMC}/players?limit=300`);
-    const arr = (Array.isArray(raw) ? raw : []).filter((p: any) => {
+    // MSMC has no bulk endpoint — pull top ranks in parallel (rank 1..scanSize).
+    const scanSize = position || nation || league ? 150 : Math.max(limit * 3, 40);
+    const ranks = Array.from({ length: scanSize }, (_, i) => i + 1);
+    const settled = await Promise.all(
+      ranks.map(async (r) => {
+        try {
+          const p = await fetchJson(`${MSMC}/player/rank/${r}`);
+          return p && p.ID ? p : null;
+        } catch { return null; }
+      }),
+    );
+    const arr = settled.filter(Boolean).filter((p: any) => {
       if (minRating && Number(p.OVR) < minRating) return false;
-      if (position && String(p.Position).toUpperCase() !== position
-          && !(Array.isArray(p['Alternative positions']) && p['Alternative positions'].map((x: string) => x.toUpperCase()).includes(position))) return false;
+      if (position) {
+        const alt = Array.isArray(p['Alternative positions']) ? p['Alternative positions'].map((x: string) => String(x).toUpperCase()) : [];
+        if (String(p.Position).toUpperCase() !== position && !alt.includes(position)) return false;
+      }
       if (nation && !String(p.Nation ?? '').toLowerCase().includes(nation)) return false;
       if (league && !String(p.League ?? '').toLowerCase().includes(league)) return false;
       return true;
