@@ -65,30 +65,34 @@ const EventCard = ({ p }: { p: FutGgPlayer }) => {
 };
 
 
-const PromoCard = ({ g }: { g: PromoGroup }) => (
-  <Link
-    to={`/event/${g.slug}`}
-    className="glass hover:glass-strong rounded-2xl p-4 transition-fluid group flex flex-col gap-3"
-  >
-    <div className="flex items-center justify-between gap-2">
-      <div className="min-w-0">
-        <p className="font-black text-sm truncate">{g.name}</p>
-        <p className="text-[10px] text-muted-foreground">{g.count} لاعب · أعلى {g.topOverall}</p>
+const PromoCard = ({ g }: { g: PromoGroup }) => {
+  const preview = g.preview.filter((p) => !!cardImg(p));
+  return (
+    <Link
+      to={`/event/${g.slug}`}
+      className="glass hover:glass-strong rounded-2xl p-4 transition-fluid group flex flex-col gap-3"
+    >
+      <div className="flex items-center justify-between gap-2">
+        <div className="min-w-0">
+          <p className="font-black text-sm truncate">{g.name}</p>
+          <p className="text-[10px] text-muted-foreground">{g.count} لاعب · أعلى {g.topOverall}</p>
+        </div>
+        <ChevronLeft className="w-4 h-4 text-primary shrink-0 group-hover:-translate-x-0.5 transition-transform" />
       </div>
-      <ChevronLeft className="w-4 h-4 text-primary shrink-0 group-hover:-translate-x-0.5 transition-transform" />
-    </div>
-    <div className="flex gap-1.5 items-end">
-      {g.preview.map((p) => {
-        const img = p.cardImageUrl || p.simpleCardImageUrl || p.imageUrl;
-        return (
-          <div key={p.id} className="flex-1 aspect-[3/4] rounded-lg overflow-hidden bg-muted/30 flex items-center justify-center">
-            {img && <img src={img} alt={displayName(p)} loading="lazy" className="w-full h-full object-contain" />}
-          </div>
-        );
-      })}
-    </div>
-  </Link>
-);
+      <div className="flex gap-1.5 items-end">
+        {preview.map((p) => {
+          const img = cardImg(p);
+          return (
+            <div key={p.id} className="flex-1 aspect-[3/4] rounded-lg overflow-hidden bg-muted/30 flex items-center justify-center">
+              <img src={img} alt={displayName(p)} loading="lazy" className="w-full h-full object-contain" />
+            </div>
+          );
+        })}
+      </div>
+    </Link>
+  );
+};
+
 
 const EventsPage = () => {
   const [tab, setTab] = useState<Tab>("promos");
