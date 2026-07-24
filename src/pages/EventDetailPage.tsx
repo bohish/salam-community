@@ -47,12 +47,14 @@ const EventDetailPage = () => {
 
   const filtered = useMemo(() => {
     if (!group) return [];
-    let list = pos === "ALL" ? group.players : group.players.filter((p) => p.position === pos);
+    let list = group.players.filter((p) => !!cardImg(p));
+    if (pos !== "ALL") list = list.filter((p) => p.position === pos);
     if (sort === "recent") {
       list = [...list].sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
     }
     return list;
   }, [group, pos, sort]);
+
 
   return (
     <div className="container mx-auto px-4 py-4 max-w-5xl">
