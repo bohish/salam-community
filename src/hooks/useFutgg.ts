@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
-import { futggApi, groupByPromo, type PromoGroup } from "@/services/futggApi";
+import { futggApi, groupByPromo, type PromoGroup, type FutGgPlayer } from "@/services/futggApi";
+
 
 const MIN = 60 * 1000;
 
@@ -25,6 +26,33 @@ export const useLatestPlayers = (page = 1) =>
     queryFn: ({ signal }) => futggApi.listPlayers(page, signal),
     ...EVENT_OPTS,
   });
+
+/** Aggregate the first N pages of latest player items, sorted by createdAt desc. */
+export const useNewPlayers = (maxPages = 4) => {
+  const q = useQuery({
+    queryKey: ["futgg", "new-players", maxPages],
+    queryFn: async ({ signal }) => {
+      const pages = await Promise.all(
+        Array.from({ length: maxPages }, (_, i) =>
+          futggApi.listPlayers(i + 1, signal).catch(() => null)
+        )
+      );
+      const seen = new Set<number>();
+      const out: FutGgPlayer[] = [];
+      for (const p of pages) {
+        if (!p?.data) continue;
+        for (const pl of p.data) {
+          if (seen.has(pl.id)) continue;
+          seen.add(pl.id);
+          out.push(pl);
+        }
+      }
+      return out.sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
+    },
+    ...EVENT_OPTS,
+  });
+  return q;
+};
 
 export const useSpecialPlayers = (page = 1) =>
   useQuery({

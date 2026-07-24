@@ -23,6 +23,7 @@ import EventsPage from "@/pages/EventsPage";
 import EventDetailPage from "@/pages/EventDetailPage";
 import OAuthConsent from "@/pages/OAuthConsent";
 import SquadPage from "@/pages/SquadPage";
+import NewPlayersPage from "@/pages/NewPlayersPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -50,6 +51,7 @@ const App = () => (
               <Route path="/search" element={<SearchPage />} />
               <Route path="/players" element={<PlayersPage />} />
               <Route path="/events" element={<EventsPage />} />
+              <Route path="/new" element={<NewPlayersPage />} />
               <Route path="/event/:slug" element={<EventDetailPage />} />
               <Route path="/compare" element={<ComparePage />} />
               <Route path="/squad" element={<SquadPage />} />

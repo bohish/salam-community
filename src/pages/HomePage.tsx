@@ -1,12 +1,13 @@
 import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { Trophy, Users, Globe2, Shield, Sparkles, ArrowLeft, GitCompare, BarChart3 } from "lucide-react";
+import { Trophy, Users, Globe2, Shield, Sparkles, ArrowLeft, GitCompare, BarChart3, Zap } from "lucide-react";
 import { useTopRanked, useRandomBatch } from "@/hooks/useFc26";
-import { useAllPromos } from "@/hooks/useFutgg";
+import { useAllPromos, useNewPlayers } from "@/hooks/useFutgg";
 import PlayerCard from "@/components/PlayerCard";
 import PlayerListRow from "@/components/PlayerListRow";
 import SearchSuggestions from "@/components/SearchSuggestions";
 import RefreshButton from "@/components/RefreshButton";
+import { NewPlayerCard } from "@/pages/NewPlayersPage";
 import { PlayerCardSkeleton, PlayerRowSkeleton } from "@/components/Skeleton";
 
 const QuickLink = ({ to, icon: Icon, label }: { to: string; icon: any; label: string }) => (
@@ -42,6 +43,7 @@ const HomePage = () => {
   const top = useTopRanked(24);
   const random = useRandomBatch(12, "featured");
   const { promos, isLoading: promosLoading } = useAllPromos(6);
+  const newPlayers = useNewPlayers(3);
 
   return (
     <div className="container mx-auto px-4 py-4 max-w-5xl">
@@ -135,6 +137,34 @@ const HomePage = () => {
           </div>
         )}
       </Section>
+
+      <Section
+        title="لاعبون جدد"
+        action={
+          <Link to="/new" className="text-xs text-primary flex items-center gap-1">
+            <Zap className="w-3 h-3" /> عرض الكل <ArrowLeft className="w-3 h-3" />
+          </Link>
+        }
+      >
+        {newPlayers.isLoading && (
+          <div className="flex gap-3 overflow-x-auto hide-scrollbar -mx-4 px-4">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="w-40 shrink-0"><PlayerCardSkeleton /></div>
+            ))}
+          </div>
+        )}
+        {newPlayers.data && newPlayers.data.length > 0 && (
+          <div className="flex gap-3 overflow-x-auto hide-scrollbar snap-x snap-mandatory -mx-4 px-4">
+            {newPlayers.data.slice(0, 12).map((p) => (
+              <div key={p.id} className="w-40 shrink-0 snap-start">
+                <NewPlayerCard p={p} />
+              </div>
+            ))}
+          </div>
+        )}
+      </Section>
+
+
 
       <Section title="لاعبون مميزون">
         {random.isLoading && (
