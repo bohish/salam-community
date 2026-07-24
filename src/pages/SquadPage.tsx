@@ -27,6 +27,10 @@ const SquadPage = () => {
   const [busy, setBusy] = useState<null | "build" | "cheaper" | "chem" | "formation" | "ai">(null);
   const [reasoning, setReasoning] = useState<string[]>([]);
   const [activeSlot, setActiveSlot] = useState<string | null>(null);
+  const [analyzeOpen, setAnalyzeOpen] = useState(false);
+  const [analysis, setAnalysis] = useState<AnalysisResponse | null>(null);
+  const [analysisBusy, setAnalysisBusy] = useState<AnalysisIntent | null>(null);
+  const [analyzeBudget, setAnalyzeBudget] = useState<number | undefined>(undefined);
 
   const chem = useMemo(() => computeChemistry(squad.slots), [squad]);
   const rating = useMemo(() => computeSquadRating(squad.slots.map((s) => s.player)), [squad]);
