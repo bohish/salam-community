@@ -23,6 +23,8 @@ import EventsPage from "@/pages/EventsPage";
 import EventDetailPage from "@/pages/EventDetailPage";
 import OAuthConsent from "@/pages/OAuthConsent";
 import SquadPage from "@/pages/SquadPage";
+import SquadPage from "@/pages/SquadPage";
+import NewPlayersPage from "@/pages/NewPlayersPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
