@@ -117,10 +117,10 @@ const tools = [
     type: 'function',
     function: {
       name: 'search_players',
-      description: 'ابحث بالاسم في قاعدة MSMC. يعيد اللاعبين المطابقين مع مركزهم وتقييمهم.',
+      description: 'بحث هجين عن لاعب بالاسم: يبدأ بمطابقة دقيقة في MSMC، ثم بحث ضبابي (أسماء جزئية/شائعة/تهجئات مختلفة) داخل قاعدة FUT.GG. لا يفشل بسبب عدم مطابقة نص حرفياً.',
       parameters: {
         type: 'object',
-        properties: { name: { type: 'string' }, limit: { type: 'integer', minimum: 1, maximum: 10, default: 5 } },
+        properties: { name: { type: 'string' }, limit: { type: 'integer', minimum: 1, maximum: 15, default: 8 } },
         required: ['name'],
       },
     },
@@ -129,8 +129,25 @@ const tools = [
     type: 'function',
     function: {
       name: 'get_player',
-      description: 'اجلب تفاصيل لاعب بواسطة EA ID.',
+      description: 'اجلب تفاصيل لاعب كاملة بواسطة EA ID (يشمل التقييمات الست PAC/SHO/PAS/DRI/DEF/PHY، القدم، المهارات، النجوم).',
       parameters: { type: 'object', properties: { id: { type: 'integer' } }, required: ['id'] },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'compare_players',
+      description: 'قارن لاعبَين جنباً إلى جنب. استخدم هذه لأي طلب مقارنة. تبحث عن كل اسم بشكل هجين (دقيق ثم ضبابي)، وإن وُجد عدة مرشحين تعيدهم للاختيار. تُعيد الإحصائيات الست + التقييم + المركز + السعر لكل لاعب.',
+      parameters: {
+        type: 'object',
+        properties: {
+          player_a: { type: 'string', description: 'اسم اللاعب الأول (كامل أو جزئي أو تهجئة شائعة).' },
+          player_b: { type: 'string', description: 'اسم اللاعب الثاني.' },
+          id_a: { type: 'integer', description: 'اختياري: EA ID لتحديد اللاعب الأول بدقة إن كان معروفاً.' },
+          id_b: { type: 'integer', description: 'اختياري: EA ID للاعب الثاني.' },
+        },
+        required: ['player_a', 'player_b'],
+      },
     },
   },
   {
@@ -172,31 +189,125 @@ const tools = [
   },
 ];
 
+// ---------- Fuzzy name utilities ----------
+function normText(s: string): string {
+  return (s || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\u0600-\u06ff\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+function tokens(s: string): string[] { return normText(s).split(' ').filter(Boolean); }
+function isSubseq(needle: string, hay: string): boolean {
+  let i = 0;
+  for (let j = 0; j < hay.length && i < needle.length; j++) if (hay[j] === needle[i]) i++;
+  return i === needle.length;
+}
+// Common alias/spelling map for tricky FIFA names
+const NAME_ALIASES: Record<string, string[]> = {
+  'salah': ['mohamed salah', 'mo salah', 'm salah', 'صلاح', 'محمد صلاح'],
+  'mbappe': ['kylian mbappe', 'mbappé', 'mbappe kylian', 'مبابي'],
+  'haaland': ['erling haaland', 'håland', 'هالاند'],
+  'ronaldo': ['cristiano ronaldo', 'cr7', 'رونالدو', 'كريستيانو'],
+  'messi': ['lionel messi', 'leo messi', 'ميسي'],
+  'benzema': ['karim benzema', 'بنزيمة'],
+  'bellingham': ['jude bellingham', 'بيلينغهام'],
+  'vinicius': ['vinicius jr', 'vini jr', 'vinícius', 'فينيسيوس'],
+  'rodri': ['rodrigo hernandez', 'rodri hernandez'],
+  'debruyne': ['kevin de bruyne', 'kdb', 'دي بروين'],
+  'de bruyne': ['kevin de bruyne', 'kdb'],
+};
+function expandAliases(q: string): string[] {
+  const n = normText(q);
+  const out = new Set<string>([n]);
+  for (const [k, vals] of Object.entries(NAME_ALIASES)) {
+    if (n === k || n.includes(k) || vals.some((v) => normText(v) === n)) {
+      out.add(k);
+      for (const v of vals) out.add(normText(v));
+    }
+  }
+  return [...out];
+}
+function scorePoolMatch(p: FGPlayer, q: string): number {
+  const name = normText(displayName(p));
+  const nameToks = tokens(displayName(p));
+  const qToks = tokens(q);
+  if (!qToks.length) return 0;
+  if (name === q) return 10000;
+  if (nameToks[nameToks.length - 1] === q) return 9000;
+  if (nameToks.includes(q)) return 8500;
+  if (qToks.every((t) => nameToks.includes(t))) return 8000;
+  if (nameToks.some((w) => w.startsWith(q))) return 7000;
+  if (name.startsWith(q)) return 6500;
+  if (name.includes(q)) return 5000;
+  if (q.length >= 3 && isSubseq(q, name)) return 500;
+  return 0;
+}
+async function fuzzyFindInPool(query: string, limit = 8): Promise<FGPlayer[]> {
+  const pool = await getPool();
+  const queries = expandAliases(query);
+  const scored = new Map<number, { p: FGPlayer; s: number }>();
+  for (const q of queries) {
+    for (const p of pool) {
+      const s = scorePoolMatch(p, q);
+      if (s <= 0) continue;
+      const id = p.basePlayerEaId ?? p.eaId;
+      const prev = scored.get(id);
+      const total = s + Math.min(99, p.overall);
+      if (!prev || prev.s < total) scored.set(id, { p, s: total });
+    }
+  }
+  return [...scored.values()].sort((a, b) => b.s - a.s).slice(0, limit).map((x) => x.p);
+}
+
 // ---------- Tool implementations ----------
 const jsonRes = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
 async function toolSearchMsmc(args: any) {
   const name = String(args?.name ?? '').trim();
-  const limit = Math.min(Number(args?.limit ?? 5) || 5, 10);
+  const limit = Math.min(Number(args?.limit ?? 8) || 8, 15);
   if (!name) return { error: 'name مطلوب', players: [] };
+
+  // 1) Exact match via MSMC
+  const exact: any[] = [];
   try {
-    const r = await fetch(`${MSMC}/player/name/${encodeURIComponent(name)}`);
-    if (!r.ok) { console.warn('[search] msmc %d for %s', r.status, name); return { players: [], note: 'لم أجد نتائج في قاعدة البيانات.' }; }
-    const raw = await r.json();
-    const arr = Array.isArray(raw) ? raw : [raw];
-    const players = arr.filter(Boolean).slice(0, limit).map((p: any) => ({
-      id: Number(p.ID), name: p.Name, rating: Number(p.OVR),
-      position: normalizePosition(p.Position) ?? p.Position,
-      altPositions: (p['Alternative positions'] ?? []).map((x: string) => normalizePosition(x) ?? x),
-      club: p.Team, nation: p.Nation, league: p.League,
-    }));
-    console.log('[search] name=%s → %d results', name, players.length);
-    return { players, count: players.length };
-  } catch (e) {
-    console.error('[search] error', (e as Error).message);
-    return { players: [], error: 'تعذّر البحث حالياً.' };
+    for (const q of expandAliases(name).slice(0, 3)) {
+      const r = await fetch(`${MSMC}/player/name/${encodeURIComponent(q)}`);
+      if (!r.ok) continue;
+      const raw = await r.json();
+      const arr = Array.isArray(raw) ? raw : [raw];
+      for (const p of arr) if (p?.ID) exact.push(p);
+      if (exact.length >= limit) break;
+    }
+  } catch (e) { console.warn('[search] msmc error', (e as Error).message); }
+
+  const exactShaped = exact.slice(0, limit).map((p: any) => ({
+    id: Number(p.ID), name: p.Name, rating: Number(p.OVR),
+    position: normalizePosition(p.Position) ?? p.Position,
+    altPositions: (p['Alternative positions'] ?? []).map((x: string) => normalizePosition(x) ?? x),
+    club: p.Team, nation: p.Nation, league: p.League,
+    match: 'exact' as const,
+  }));
+
+  if (exactShaped.length > 0) {
+    console.log('[search] name="%s" exact=%d', name, exactShaped.length);
+    return { players: exactShaped, count: exactShaped.length, strategy: 'exact' };
   }
+
+  // 2) Fuzzy match via FUT.GG pool
+  const fuzzy = await fuzzyFindInPool(name, limit);
+  const fuzzyShaped = fuzzy.map((p) => ({ ...shape(p), match: 'fuzzy' as const }));
+  console.log('[search] name="%s" fuzzy=%d', name, fuzzyShaped.length);
+  if (fuzzyShaped.length > 0) {
+    return { players: fuzzyShaped, count: fuzzyShaped.length, strategy: 'fuzzy',
+      note: 'لم أجد مطابقة دقيقة، هذه أقرب النتائج من قاعدة FUT.GG.' };
+  }
+
+  return { players: [], count: 0, strategy: 'none',
+    note: `لم يُعثر على أي لاعب باسم "${name}" في قاعدة بيانات Futmac.` };
 }
 
 async function toolGetMsmc(args: any) {
@@ -302,12 +413,80 @@ async function toolSquadCandidates(args: any) {
   return { pool_size: pool.length, slots, missing_positions: missing };
 }
 
+// ---------- compare_players (hybrid resolver + side-by-side stats) ----------
+async function resolveOne(name: string, id?: number) {
+  if (id && Number.isFinite(id)) {
+    const got = await toolGetMsmc({ id });
+    if ((got as any).player) return { status: 'resolved' as const, player: (got as any).player, source: 'msmc-id' };
+  }
+  // Exact via MSMC (with alias expansion)
+  const searched = await toolSearchMsmc({ name, limit: 8 });
+  const list = (searched as any).players ?? [];
+  if (list.length === 1) {
+    const only = list[0];
+    if (only.match === 'exact') {
+      const full = await toolGetMsmc({ id: only.id });
+      if ((full as any).player) return { status: 'resolved' as const, player: (full as any).player, source: 'msmc-exact' };
+    }
+    // single fuzzy hit — treat as resolved but flag
+    return { status: 'resolved' as const, player: only, source: (searched as any).strategy, ambiguous: false };
+  }
+  if (list.length > 1) {
+    // Multiple candidates → ask user to disambiguate
+    return {
+      status: 'ambiguous' as const,
+      query: name,
+      candidates: list.slice(0, 6),
+      strategy: (searched as any).strategy,
+    };
+  }
+  return { status: 'not_found' as const, query: name };
+}
+
+async function toolComparePlayers(args: any) {
+  const nameA = String(args?.player_a ?? '').trim();
+  const nameB = String(args?.player_b ?? '').trim();
+  if (!nameA || !nameB) return { error: 'player_a و player_b مطلوبان.' };
+  const [a, b] = await Promise.all([
+    resolveOne(nameA, Number(args?.id_a) || undefined),
+    resolveOne(nameB, Number(args?.id_b) || undefined),
+  ]);
+  console.log('[compare] a=%s(%s) b=%s(%s)', nameA, a.status, nameB, b.status);
+
+  // If either side is ambiguous or not found, return that state for the model to relay to the user.
+  if (a.status !== 'resolved' || b.status !== 'resolved') {
+    return { needs_user_input: true, player_a: a, player_b: b };
+  }
+
+  const pa: any = a.player, pb: any = b.player;
+  const stat = (x: any, k: string) => (typeof x[k] === 'number' && Number.isFinite(x[k]) ? x[k] : null);
+  const rows = ['pace','shooting','passing','dribbling','defending','physical'].map((k) => ({
+    stat: k, a: stat(pa, k), b: stat(pb, k),
+    winner: stat(pa, k) != null && stat(pb, k) != null ? (pa[k] > pb[k] ? 'a' : pa[k] < pb[k] ? 'b' : 'tie') : null,
+  }));
+  return {
+    resolved: true,
+    a: { id: pa.id, name: pa.name, rating: pa.rating, position: pa.position, club: pa.club, nation: pa.nation, league: pa.league,
+      pace: pa.pace ?? null, shooting: pa.shooting ?? null, passing: pa.passing ?? null,
+      dribbling: pa.dribbling ?? null, defending: pa.defending ?? null, physical: pa.physical ?? null,
+      weakFoot: pa.weakFoot ?? null, skillMoves: pa.skillMoves ?? null, foot: pa.foot ?? null,
+      price: pa.price ?? null },
+    b: { id: pb.id, name: pb.name, rating: pb.rating, position: pb.position, club: pb.club, nation: pb.nation, league: pb.league,
+      pace: pb.pace ?? null, shooting: pb.shooting ?? null, passing: pb.passing ?? null,
+      dribbling: pb.dribbling ?? null, defending: pb.defending ?? null, physical: pb.physical ?? null,
+      weakFoot: pb.weakFoot ?? null, skillMoves: pb.skillMoves ?? null, foot: pb.foot ?? null,
+      price: pb.price ?? null },
+    rows,
+  };
+}
+
 async function runTool(name: string, args: any) {
   switch (name) {
     case 'search_players': return toolSearchMsmc(args);
     case 'get_player': return toolGetMsmc(args);
     case 'top_players': return toolTopPlayers(args);
     case 'squad_candidates': return toolSquadCandidates(args);
+    case 'compare_players': return toolComparePlayers(args);
     default: return { error: `أداة غير معروفة: ${name}` };
   }
 }
@@ -324,6 +503,38 @@ const SYSTEM_PROMPT = `أنت "مدرب futmac" — مساعد ذكي متخصص
 6. ردّ بالعربية الفصحى المبسّطة، منظماً ومختصراً.
 
 المراكز المدعومة: GK, RB, LB, CB, RWB, LWB, CDM, CM, CAM, LM, RM, LW, RW, ST, CF.
+
+استراتيجية البحث الهجينة عن اللاعبين (إلزامية):
+• لأي طلب يتضمن اسم لاعب استخدم أداة البحث/المقارنة — لا ترفض بسبب عدم تطابق نص حرفياً.
+• الأداة تبحث أولاً بمطابقة دقيقة، ثم ضبابية (أسماء جزئية/شائعة/تهجئات مثل "Salah" ↔ "Mohamed Salah"، "Mbappe" ↔ "Mbappé").
+• إن رجعت النتائج بحقل strategy = "fuzzy" وضّح للمستخدم أن المطابقة غير دقيقة واعرض الأقرب.
+• إن كان هناك عدة مرشحين (أكثر من واحد) اسأل المستخدم أياً يقصد واعرض قائمة مرقّمة (الاسم، التقييم، المركز، النادي).
+• لا تقل "اللاعب غير متوفر" إلا إذا رجعت الأداة strategy = "none" (أي لا نتائج دقيقة ولا ضبابية إطلاقاً).
+
+للمقارنة بين لاعبَين استخدم compare_players دائماً:
+• إن كانت النتيجة needs_user_input:
+  - لأي طرف status = "ambiguous": اعرض المرشحين واطلب من المستخدم اختيار الرقم/الاسم قبل المتابعة.
+  - لأي طرف status = "not_found": اذكر بوضوح "اللاعب <الاسم> غير متوفر في قاعدة بيانات Futmac" واقترح تصحيح الاسم.
+• إن كانت resolved = true اعرض مقارنة جنباً إلى جنب بهذا الشكل بالعربية:
+
+| الإحصائية | اللاعب A | اللاعب B |
+|---|---|---|
+| التقييم | ... | ... |
+| المركز | ... | ... |
+| النادي | ... | ... |
+| الدولة | ... | ... |
+| السرعة PAC | ... | ... |
+| التسديد SHO | ... | ... |
+| التمرير PAS | ... | ... |
+| المراوغة DRI | ... | ... |
+| الدفاع DEF | ... | ... |
+| البنية PHY | ... | ... |
+| القدم | ... | ... |
+| المهارات ★ | ... | ... |
+| القدم الضعيف ★ | ... | ... |
+| السعر | ... | ... |
+
+ثم اختم بجملة توصية قصيرة (سطر أو سطران) موضحاً نقاط قوة كل لاعب بحسب الأرقام أعلاه فقط.
 
 عند بناء تشكيلة أعد النتيجة بهذا الشكل:
 • التشكيلة (Formation)
