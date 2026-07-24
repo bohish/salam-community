@@ -89,6 +89,35 @@ const HomePage = () => {
         </div>
       </div>
 
+      {/* New Players — right below hero/search */}
+      {(newPlayersQ.isLoading || newPlayers.length > 0) && (
+        <Section
+          title="لاعبون جدد"
+          action={
+            <Link to="/new" className="text-xs text-primary flex items-center gap-1">
+              <Zap className="w-3 h-3" /> عرض الكل <ArrowLeft className="w-3 h-3" />
+            </Link>
+          }
+        >
+          {newPlayersQ.isLoading && (
+            <div className="flex gap-3 overflow-x-auto hide-scrollbar -mx-4 px-4">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="w-40 shrink-0"><PlayerCardSkeleton /></div>
+              ))}
+            </div>
+          )}
+          {newPlayers.length > 0 && (
+            <div className="flex gap-3 overflow-x-auto hide-scrollbar snap-x snap-mandatory -mx-4 px-4">
+              {newPlayers.slice(0, 12).map((p) => (
+                <div key={p.id} className="w-40 shrink-0 snap-start">
+                  <NewPlayerCard p={p} />
+                </div>
+              ))}
+            </div>
+          )}
+        </Section>
+      )}
+
       {/* Quick links */}
       <div className="grid grid-cols-4 sm:grid-cols-8 gap-2.5 mb-10">
         <QuickLink to="/events" icon={Sparkles} label="الأحداث" />
@@ -101,73 +130,54 @@ const HomePage = () => {
         <QuickLink to="/favorites" icon={Users} label="المفضلة" />
       </div>
 
-      <Section
-        title="أحداث حية"
-        action={
-          <div className="flex items-center gap-3">
-            <RefreshButton />
-            <Link to="/events" className="text-xs text-primary flex items-center gap-1">عرض الكل <ArrowLeft className="w-3 h-3" /></Link>
-          </div>
-        }
-      >
-        {promosLoading && (
-          <div className="flex gap-3 overflow-x-auto hide-scrollbar -mx-4 px-4">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="w-56 h-32 shrink-0 glass rounded-2xl animate-pulse" />
-            ))}
-          </div>
-        )}
-        {promos.length > 0 && (
-          <div className="flex gap-3 overflow-x-auto hide-scrollbar snap-x snap-mandatory -mx-4 px-4">
-            {promos.slice(0, 8).map((g) => (
-              <Link
-                key={g.slug}
-                to={`/event/${g.slug}`}
-                className="w-56 shrink-0 snap-start glass hover:glass-strong rounded-2xl p-3 transition-fluid"
-              >
-                <div className="flex gap-1 mb-2">
-                  {g.preview.map((p) => {
-                    const img = p.cardImageUrl || p.simpleCardImageUrl || p.imageUrl;
-                    return (
-                      <div key={p.id} className="flex-1 aspect-[3/4] rounded-md overflow-hidden bg-muted/30 flex items-center justify-center">
-                        {img && <img src={img} alt="" loading="lazy" className="w-full h-full object-contain" />}
-                      </div>
-                    );
-                  })}
-                </div>
-                <p className="font-black text-xs truncate">{g.name}</p>
-                <p className="text-[10px] text-muted-foreground">{g.count} لاعب · أعلى {g.topOverall}</p>
-              </Link>
-            ))}
-          </div>
-        )}
-      </Section>
+      {(promosLoading || promos.length > 0) && (
+        <Section
+          title="أحداث حية"
+          action={
+            <div className="flex items-center gap-3">
+              <RefreshButton />
+              <Link to="/events" className="text-xs text-primary flex items-center gap-1">عرض الكل <ArrowLeft className="w-3 h-3" /></Link>
+            </div>
+          }
+        >
+          {promosLoading && (
+            <div className="flex gap-3 overflow-x-auto hide-scrollbar -mx-4 px-4">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="w-56 h-32 shrink-0 glass rounded-2xl animate-pulse" />
+              ))}
+            </div>
+          )}
+          {promos.length > 0 && (
+            <div className="flex gap-3 overflow-x-auto hide-scrollbar snap-x snap-mandatory -mx-4 px-4">
+              {promos.slice(0, 8).map((g) => {
+                const preview = g.preview.filter(hasImage);
+                return (
+                  <Link
+                    key={g.slug}
+                    to={`/event/${g.slug}`}
+                    className="w-56 shrink-0 snap-start glass hover:glass-strong rounded-2xl p-3 transition-fluid"
+                  >
+                    <div className="flex gap-1 mb-2">
+                      {preview.map((p) => {
+                        const img = p.cardImageUrl || p.simpleCardImageUrl || p.imageUrl;
+                        return (
+                          <div key={p.id} className="flex-1 aspect-[3/4] rounded-md overflow-hidden bg-muted/30 flex items-center justify-center">
+                            <img src={img} alt="" loading="lazy" className="w-full h-full object-contain" />
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <p className="font-black text-xs truncate">{g.name}</p>
+                    <p className="text-[10px] text-muted-foreground">{g.count} لاعب · أعلى {g.topOverall}</p>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </Section>
+      )}
 
-      <Section
-        title="لاعبون جدد"
-        action={
-          <Link to="/new" className="text-xs text-primary flex items-center gap-1">
-            <Zap className="w-3 h-3" /> عرض الكل <ArrowLeft className="w-3 h-3" />
-          </Link>
-        }
-      >
-        {newPlayers.isLoading && (
-          <div className="flex gap-3 overflow-x-auto hide-scrollbar -mx-4 px-4">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="w-40 shrink-0"><PlayerCardSkeleton /></div>
-            ))}
-          </div>
-        )}
-        {newPlayers.data && newPlayers.data.length > 0 && (
-          <div className="flex gap-3 overflow-x-auto hide-scrollbar snap-x snap-mandatory -mx-4 px-4">
-            {newPlayers.data.slice(0, 12).map((p) => (
-              <div key={p.id} className="w-40 shrink-0 snap-start">
-                <NewPlayerCard p={p} />
-              </div>
-            ))}
-          </div>
-        )}
-      </Section>
+
 
 
 
