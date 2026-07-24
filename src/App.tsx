@@ -67,6 +67,7 @@ const App = () => (
             </Routes>
           </main>
           <BottomNav />
+          <AICoach />
         </div>
       </BrowserRouter>
     </TooltipProvider>
