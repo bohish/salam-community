@@ -36,8 +36,11 @@ const matches = (p: FutGgPlayer, tab: Tab): boolean => {
   }
 };
 
+const cardImg = (p: FutGgPlayer) =>
+  p.cardImageUrl || p.simpleCardImageUrl || p.socialImageUrl || p.imageUrl;
+
 const EventCard = ({ p }: { p: FutGgPlayer }) => {
-  const img = p.cardImageUrl || p.simpleCardImageUrl || p.socialImageUrl || p.imageUrl;
+  const img = cardImg(p);
   const label = categoryLabel(p);
   return (
     <Link
@@ -46,14 +49,8 @@ const EventCard = ({ p }: { p: FutGgPlayer }) => {
       className="glass hover:glass-strong rounded-2xl p-3 flex flex-col items-center gap-2 transition-fluid group"
     >
       <div className="relative w-full aspect-[3/4] flex items-center justify-center overflow-hidden">
-        {img ? (
-          <img src={img} alt={displayName(p)} loading="lazy"
-            className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300" />
-        ) : (
-          <div className="w-full h-full rounded-lg bg-muted flex items-center justify-center text-xl font-bold">
-            {(displayName(p) || "?").charAt(0)}
-          </div>
-        )}
+        <img src={img} alt={displayName(p)} loading="lazy"
+          className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300" />
         <span className="absolute top-1 left-1 rating-chip text-[10px]">{p.overall}</span>
       </div>
       <div className="w-full text-center">
@@ -67,30 +64,35 @@ const EventCard = ({ p }: { p: FutGgPlayer }) => {
   );
 };
 
-const PromoCard = ({ g }: { g: PromoGroup }) => (
-  <Link
-    to={`/event/${g.slug}`}
-    className="glass hover:glass-strong rounded-2xl p-4 transition-fluid group flex flex-col gap-3"
-  >
-    <div className="flex items-center justify-between gap-2">
-      <div className="min-w-0">
-        <p className="font-black text-sm truncate">{g.name}</p>
-        <p className="text-[10px] text-muted-foreground">{g.count} لاعب · أعلى {g.topOverall}</p>
+
+const PromoCard = ({ g }: { g: PromoGroup }) => {
+  const preview = g.preview.filter((p) => !!cardImg(p));
+  return (
+    <Link
+      to={`/event/${g.slug}`}
+      className="glass hover:glass-strong rounded-2xl p-4 transition-fluid group flex flex-col gap-3"
+    >
+      <div className="flex items-center justify-between gap-2">
+        <div className="min-w-0">
+          <p className="font-black text-sm truncate">{g.name}</p>
+          <p className="text-[10px] text-muted-foreground">{g.count} لاعب · أعلى {g.topOverall}</p>
+        </div>
+        <ChevronLeft className="w-4 h-4 text-primary shrink-0 group-hover:-translate-x-0.5 transition-transform" />
       </div>
-      <ChevronLeft className="w-4 h-4 text-primary shrink-0 group-hover:-translate-x-0.5 transition-transform" />
-    </div>
-    <div className="flex gap-1.5 items-end">
-      {g.preview.map((p) => {
-        const img = p.cardImageUrl || p.simpleCardImageUrl || p.imageUrl;
-        return (
-          <div key={p.id} className="flex-1 aspect-[3/4] rounded-lg overflow-hidden bg-muted/30 flex items-center justify-center">
-            {img && <img src={img} alt={displayName(p)} loading="lazy" className="w-full h-full object-contain" />}
-          </div>
-        );
-      })}
-    </div>
-  </Link>
-);
+      <div className="flex gap-1.5 items-end">
+        {preview.map((p) => {
+          const img = cardImg(p);
+          return (
+            <div key={p.id} className="flex-1 aspect-[3/4] rounded-lg overflow-hidden bg-muted/30 flex items-center justify-center">
+              <img src={img} alt={displayName(p)} loading="lazy" className="w-full h-full object-contain" />
+            </div>
+          );
+        })}
+      </div>
+    </Link>
+  );
+};
+
 
 const EventsPage = () => {
   const [tab, setTab] = useState<Tab>("promos");
@@ -102,8 +104,12 @@ const EventsPage = () => {
   const source = tab === "new" ? hub : all;
 
   const players =
-    tab === "promos" ? [] : (source.data?.data ?? []).filter((p) => matches(p, tab));
+    tab === "promos"
+      ? []
+      : (source.data?.data ?? []).filter((p) => matches(p, tab) && !!cardImg(p));
   const totalPages = source.data?.totalPages ?? 1;
+  const visiblePromos = promosQ.promos.filter((g) => g.preview.some((p) => !!cardImg(p)));
+
 
   return (
     <div className="container mx-auto px-4 py-4 max-w-5xl">
@@ -158,13 +164,20 @@ const EventsPage = () => {
               تعذّر تحميل البروموات من FUT.GG.
             </div>
           )}
-          {promosQ.promos.length > 0 && (
+          {visiblePromos.length > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-              {promosQ.promos.map((g) => <PromoCard key={g.slug} g={g} />)}
+              {visiblePromos.map((g) => <PromoCard key={g.slug} g={g} />)}
+            </div>
+          )}
+          {!promosQ.isLoading && !promosQ.error && visiblePromos.length === 0 && (
+            <div className="glass rounded-xl p-8 text-center text-sm text-muted-foreground">
+              لا توجد بروموات نشطة حالياً.
             </div>
           )}
         </>
       )}
+
+
 
       {/* Other tabs (paginated) */}
       {tab !== "promos" && (
