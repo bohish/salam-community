@@ -161,13 +161,11 @@ const PlayerDetailPage = () => {
     navigate("/compare");
   };
 
-  const foot = (player.raw["Preferred Foot"] as string) || (player.raw["foot"] as string) || player.preferredFoot || "—";
-  const height = (player.raw["Height"] || player.raw["height"] || player.height) as string | number | undefined;
-  const weight = (player.raw["Weight"] || player.raw["weight"] || player.weight) as string | number | undefined;
-  const wf = Number(player.raw["Weak Foot"] || player.raw["weakFoot"] || player.weakFoot || 3);
-  const skm = Number(player.raw["Skill Moves"] || player.raw["skillMoves"] || player.skillMoves || 3);
-  const wrAtk = String(player.raw["Att. Work Rate"] || player.raw["attackWorkRate"] || "Med");
-  const wrDef = String(player.raw["Def. Work Rate"] || player.raw["defenseWorkRate"] || "Med");
+  const foot = player.preferredFoot || (player.raw["Preferred foot"] as string) || "—";
+  const height = player.height || (player.raw["Height"] as string) || "";
+  const weight = player.weight || (player.raw["Weight"] as string) || "";
+  const wf = player.weakFoot || Number(player.raw["Weak foot"] || 0);
+  const skm = player.skillMoves || Number(player.raw["Skill moves"] || 0);
 
   return (
     <div className="min-h-screen">
