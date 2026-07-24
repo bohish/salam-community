@@ -104,10 +104,22 @@ async function fetchFromMsmc(id: string, signal?: AbortSignal): Promise<Player |
   }
 }
 
-/** Merge a FUT.GG player (card art, price, promo info) into an MSMC-based player. */
+/** Merge a FUT.GG player (card art, special face stats) into an MSMC-based player.
+ *  MSMC is authoritative for detailed sub-stats. For special/upgraded cards
+ *  (fg.rating > msmc.rating) we surface FUT.GG's six face stats + overall so
+ *  the header and radar reflect the special card, while sub-stats stay factual. */
 function mergeFutgg(base: Player, fg: Player): Player {
+  const upgraded = fg.rating > base.rating;
+  const pick = (a: number, b: number) => (upgraded && a > 0 ? a : b || a);
   return {
     ...base,
+    rating: Math.max(base.rating, fg.rating),
+    pace: pick(fg.pace, base.pace),
+    shooting: pick(fg.shooting, base.shooting),
+    passing: pick(fg.passing, base.passing),
+    dribbling: pick(fg.dribbling, base.dribbling),
+    defending: pick(fg.defending, base.defending),
+    physical: pick(fg.physical, base.physical),
     // Prefer FUT.GG art/URLs when present (higher-quality special-card images).
     cardUrl: fg.cardUrl || base.cardUrl,
     eaUrl: base.eaUrl || fg.eaUrl,
