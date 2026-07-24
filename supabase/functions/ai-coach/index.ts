@@ -413,12 +413,80 @@ async function toolSquadCandidates(args: any) {
   return { pool_size: pool.length, slots, missing_positions: missing };
 }
 
+// ---------- compare_players (hybrid resolver + side-by-side stats) ----------
+async function resolveOne(name: string, id?: number) {
+  if (id && Number.isFinite(id)) {
+    const got = await toolGetMsmc({ id });
+    if ((got as any).player) return { status: 'resolved' as const, player: (got as any).player, source: 'msmc-id' };
+  }
+  // Exact via MSMC (with alias expansion)
+  const searched = await toolSearchMsmc({ name, limit: 8 });
+  const list = (searched as any).players ?? [];
+  if (list.length === 1) {
+    const only = list[0];
+    if (only.match === 'exact') {
+      const full = await toolGetMsmc({ id: only.id });
+      if ((full as any).player) return { status: 'resolved' as const, player: (full as any).player, source: 'msmc-exact' };
+    }
+    // single fuzzy hit — treat as resolved but flag
+    return { status: 'resolved' as const, player: only, source: (searched as any).strategy, ambiguous: false };
+  }
+  if (list.length > 1) {
+    // Multiple candidates → ask user to disambiguate
+    return {
+      status: 'ambiguous' as const,
+      query: name,
+      candidates: list.slice(0, 6),
+      strategy: (searched as any).strategy,
+    };
+  }
+  return { status: 'not_found' as const, query: name };
+}
+
+async function toolComparePlayers(args: any) {
+  const nameA = String(args?.player_a ?? '').trim();
+  const nameB = String(args?.player_b ?? '').trim();
+  if (!nameA || !nameB) return { error: 'player_a و player_b مطلوبان.' };
+  const [a, b] = await Promise.all([
+    resolveOne(nameA, Number(args?.id_a) || undefined),
+    resolveOne(nameB, Number(args?.id_b) || undefined),
+  ]);
+  console.log('[compare] a=%s(%s) b=%s(%s)', nameA, a.status, nameB, b.status);
+
+  // If either side is ambiguous or not found, return that state for the model to relay to the user.
+  if (a.status !== 'resolved' || b.status !== 'resolved') {
+    return { needs_user_input: true, player_a: a, player_b: b };
+  }
+
+  const pa: any = a.player, pb: any = b.player;
+  const stat = (x: any, k: string) => (typeof x[k] === 'number' && Number.isFinite(x[k]) ? x[k] : null);
+  const rows = ['pace','shooting','passing','dribbling','defending','physical'].map((k) => ({
+    stat: k, a: stat(pa, k), b: stat(pb, k),
+    winner: stat(pa, k) != null && stat(pb, k) != null ? (pa[k] > pb[k] ? 'a' : pa[k] < pb[k] ? 'b' : 'tie') : null,
+  }));
+  return {
+    resolved: true,
+    a: { id: pa.id, name: pa.name, rating: pa.rating, position: pa.position, club: pa.club, nation: pa.nation, league: pa.league,
+      pace: pa.pace ?? null, shooting: pa.shooting ?? null, passing: pa.passing ?? null,
+      dribbling: pa.dribbling ?? null, defending: pa.defending ?? null, physical: pa.physical ?? null,
+      weakFoot: pa.weakFoot ?? null, skillMoves: pa.skillMoves ?? null, foot: pa.foot ?? null,
+      price: pa.price ?? null },
+    b: { id: pb.id, name: pb.name, rating: pb.rating, position: pb.position, club: pb.club, nation: pb.nation, league: pb.league,
+      pace: pb.pace ?? null, shooting: pb.shooting ?? null, passing: pb.passing ?? null,
+      dribbling: pb.dribbling ?? null, defending: pb.defending ?? null, physical: pb.physical ?? null,
+      weakFoot: pb.weakFoot ?? null, skillMoves: pb.skillMoves ?? null, foot: pb.foot ?? null,
+      price: pb.price ?? null },
+    rows,
+  };
+}
+
 async function runTool(name: string, args: any) {
   switch (name) {
     case 'search_players': return toolSearchMsmc(args);
     case 'get_player': return toolGetMsmc(args);
     case 'top_players': return toolTopPlayers(args);
     case 'squad_candidates': return toolSquadCandidates(args);
+    case 'compare_players': return toolComparePlayers(args);
     default: return { error: `أداة غير معروفة: ${name}` };
   }
 }
@@ -435,6 +503,38 @@ const SYSTEM_PROMPT = `أنت "مدرب futmac" — مساعد ذكي متخصص
 6. ردّ بالعربية الفصحى المبسّطة، منظماً ومختصراً.
 
 المراكز المدعومة: GK, RB, LB, CB, RWB, LWB, CDM, CM, CAM, LM, RM, LW, RW, ST, CF.
+
+استراتيجية البحث الهجينة عن اللاعبين (إلزامية):
+• لأي طلب يتضمن اسم لاعب استخدم أداة البحث/المقارنة — لا ترفض بسبب عدم تطابق نص حرفياً.
+• الأداة تبحث أولاً بمطابقة دقيقة، ثم ضبابية (أسماء جزئية/شائعة/تهجئات مثل "Salah" ↔ "Mohamed Salah"، "Mbappe" ↔ "Mbappé").
+• إن رجعت النتائج بحقل strategy = "fuzzy" وضّح للمستخدم أن المطابقة غير دقيقة واعرض الأقرب.
+• إن كان هناك عدة مرشحين (أكثر من واحد) اسأل المستخدم أياً يقصد واعرض قائمة مرقّمة (الاسم، التقييم، المركز، النادي).
+• لا تقل "اللاعب غير متوفر" إلا إذا رجعت الأداة strategy = "none" (أي لا نتائج دقيقة ولا ضبابية إطلاقاً).
+
+للمقارنة بين لاعبَين استخدم compare_players دائماً:
+• إن كانت النتيجة needs_user_input:
+  - لأي طرف status = "ambiguous": اعرض المرشحين واطلب من المستخدم اختيار الرقم/الاسم قبل المتابعة.
+  - لأي طرف status = "not_found": اذكر بوضوح "اللاعب <الاسم> غير متوفر في قاعدة بيانات Futmac" واقترح تصحيح الاسم.
+• إن كانت resolved = true اعرض مقارنة جنباً إلى جنب بهذا الشكل بالعربية:
+
+| الإحصائية | اللاعب A | اللاعب B |
+|---|---|---|
+| التقييم | ... | ... |
+| المركز | ... | ... |
+| النادي | ... | ... |
+| الدولة | ... | ... |
+| السرعة PAC | ... | ... |
+| التسديد SHO | ... | ... |
+| التمرير PAS | ... | ... |
+| المراوغة DRI | ... | ... |
+| الدفاع DEF | ... | ... |
+| البنية PHY | ... | ... |
+| القدم | ... | ... |
+| المهارات ★ | ... | ... |
+| القدم الضعيف ★ | ... | ... |
+| السعر | ... | ... |
+
+ثم اختم بجملة توصية قصيرة (سطر أو سطران) موضحاً نقاط قوة كل لاعب بحسب الأرقام أعلاه فقط.
 
 عند بناء تشكيلة أعد النتيجة بهذا الشكل:
 • التشكيلة (Formation)
