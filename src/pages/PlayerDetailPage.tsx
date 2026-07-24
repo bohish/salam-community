@@ -326,8 +326,6 @@ const PlayerDetailPage = () => {
             {height && <InfoLine label="الطول" value={height as string} />}
             {weight && <InfoLine label="الوزن" value={weight as string} />}
             <InfoLine label="القدم" value={foot} />
-            <InfoLine label="معدل الهجوم" value={wrAtk} />
-            <InfoLine label="معدل الدفاع" value={wrDef} />
           </Panel>
         </section>
 
