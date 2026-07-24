@@ -11,8 +11,11 @@ import { PlayerCardSkeleton } from "@/components/Skeleton";
 
 const POSITIONS = ["ALL", "GK", "CB", "LB", "RB", "CDM", "CM", "CAM", "LM", "RM", "LW", "RW", "ST", "CF"];
 
+const cardImg = (p: FutGgPlayer) =>
+  p.cardImageUrl || p.simpleCardImageUrl || p.imageUrl;
+
 const EventPlayer = ({ p }: { p: FutGgPlayer }) => {
-  const img = p.cardImageUrl || p.simpleCardImageUrl || p.imageUrl;
+  const img = cardImg(p);
   return (
     <Link
       to={`/player/${playerSlug(displayName(p), p.eaId)}`}
@@ -20,14 +23,8 @@ const EventPlayer = ({ p }: { p: FutGgPlayer }) => {
       className="glass hover:glass-strong rounded-2xl p-3 flex flex-col items-center gap-2 transition-fluid group"
     >
       <div className="relative w-full aspect-[3/4] flex items-center justify-center overflow-hidden">
-        {img ? (
-          <img src={img} alt={displayName(p)} loading="lazy"
-            className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300" />
-        ) : (
-          <div className="w-full h-full rounded-lg bg-muted flex items-center justify-center text-xl font-bold">
-            {(displayName(p) || "?").charAt(0)}
-          </div>
-        )}
+        <img src={img} alt={displayName(p)} loading="lazy"
+          className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300" />
         <span className="absolute top-1 left-1 rating-chip text-[10px]">{p.overall}</span>
       </div>
       <div className="w-full text-center">
@@ -40,6 +37,7 @@ const EventPlayer = ({ p }: { p: FutGgPlayer }) => {
     </Link>
   );
 };
+
 
 const EventDetailPage = () => {
   const { slug } = useParams<{ slug: string }>();
