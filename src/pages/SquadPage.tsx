@@ -1,12 +1,15 @@
 import { useMemo, useState } from "react";
-import { Sparkles, Wand2, Coins, Zap, Repeat, Loader2, Send } from "lucide-react";
+import { Sparkles, Wand2, Coins, Zap, Repeat, Loader2, Send, ImagePlus } from "lucide-react";
 import { Helmet } from "react-helmet-async";
 import Pitch from "@/components/squad/Pitch";
 import SquadHUD from "@/components/squad/SquadHUD";
 import CandidateSheet from "@/components/squad/CandidateSheet";
+import AnalyzeSheet from "@/components/squad/AnalyzeSheet";
+import AnalysisPanel from "@/components/squad/AnalysisPanel";
 import { FORMATIONS, getFormation } from "@/lib/formations";
 import { computeChemistry, computeSquadRating, computeTotalPrice } from "@/lib/chemistry";
 import { squadBuilderApi } from "@/services/squadBuilder";
+import { squadAnalyzerApi, type AnalysisIntent, type AnalysisResponse, type SwapSuggestion } from "@/services/squadAnalyzer";
 import type { Squad, SquadPlayer, SquadSlotState } from "@/types/squad";
 import { toast } from "sonner";
 
