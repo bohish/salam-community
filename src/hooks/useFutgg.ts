@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
-import { futggApi, groupByPromo, type PromoGroup } from "@/services/futggApi";
+import { futggApi, groupByPromo, type PromoGroup, type FutGgPlayer } from "@/services/futggApi";
+
 
 const MIN = 60 * 1000;
 
