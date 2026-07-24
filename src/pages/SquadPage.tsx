@@ -116,6 +116,41 @@ const SquadPage = () => {
   const activeSlotDef = activeSlot ? squad.slots.find((s) => s.id === activeSlot) : null;
   const usedIds = squad.slots.map((s) => s.player?.id).filter(Boolean) as number[];
 
+  const applySwaps = (swaps: SwapSuggestion[]) => {
+    if (!swaps?.length) return;
+    setSquad((s) => {
+      const bySlotId = new Map(swaps.map((sw) => [sw.slotId, sw.player]));
+      return { ...s, slots: s.slots.map((slot) => bySlotId.has(slot.id) ? { ...slot, player: bySlotId.get(slot.id)! } : slot) };
+    });
+    toast.success(`طُبِّق ${swaps.length} استبدال`);
+  };
+
+  const runAnalysis = async (intent: AnalysisIntent, budget?: number) => {
+    if (squad.slots.every((s) => !s.player)) return toast.error("حمّل تشكيلة أولاً.");
+    setAnalysisBusy(intent);
+    try {
+      const res = await squadAnalyzerApi.analyze(squad, intent, budget ?? analyzeBudget);
+      setAnalysis(res);
+      // For explicit action intents, auto-apply the returned swap set.
+      if (intent === "chem" && res.actions.improveChem.length) applySwaps(res.actions.improveChem);
+      else if (intent === "attack" && res.actions.upgradeAttack.length) applySwaps(res.actions.upgradeAttack);
+      else if (intent === "weakest" && res.actions.replaceWeakest) applySwaps([res.actions.replaceWeakest]);
+      else if (intent === "budget" && res.actions.optimizeBudget.length) applySwaps(res.actions.optimizeBudget);
+    } catch (e: any) {
+      toast.error(e.message || "فشل التحليل.");
+    } finally {
+      setAnalysisBusy(null);
+    }
+  };
+
+  const handleAnalyzedSquad = (loaded: Squad, budget?: number) => {
+    setSquad(loaded);
+    setAnalyzeBudget(budget);
+    setAnalysis(null);
+    // Kick off an initial analysis right after loading.
+    setTimeout(() => runAnalysis("general", budget), 200);
+  };
+
   return (
     <>
       <Helmet>
