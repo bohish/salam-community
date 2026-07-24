@@ -1,12 +1,15 @@
 import { useMemo, useState } from "react";
-import { Sparkles, Wand2, Coins, Zap, Repeat, Loader2, Send } from "lucide-react";
+import { Sparkles, Wand2, Coins, Zap, Repeat, Loader2, Send, ImagePlus } from "lucide-react";
 import { Helmet } from "react-helmet-async";
 import Pitch from "@/components/squad/Pitch";
 import SquadHUD from "@/components/squad/SquadHUD";
 import CandidateSheet from "@/components/squad/CandidateSheet";
+import AnalyzeSheet from "@/components/squad/AnalyzeSheet";
+import AnalysisPanel from "@/components/squad/AnalysisPanel";
 import { FORMATIONS, getFormation } from "@/lib/formations";
 import { computeChemistry, computeSquadRating, computeTotalPrice } from "@/lib/chemistry";
 import { squadBuilderApi } from "@/services/squadBuilder";
+import { squadAnalyzerApi, type AnalysisIntent, type AnalysisResponse, type SwapSuggestion } from "@/services/squadAnalyzer";
 import type { Squad, SquadPlayer, SquadSlotState } from "@/types/squad";
 import { toast } from "sonner";
 
@@ -24,6 +27,10 @@ const SquadPage = () => {
   const [busy, setBusy] = useState<null | "build" | "cheaper" | "chem" | "formation" | "ai">(null);
   const [reasoning, setReasoning] = useState<string[]>([]);
   const [activeSlot, setActiveSlot] = useState<string | null>(null);
+  const [analyzeOpen, setAnalyzeOpen] = useState(false);
+  const [analysis, setAnalysis] = useState<AnalysisResponse | null>(null);
+  const [analysisBusy, setAnalysisBusy] = useState<AnalysisIntent | null>(null);
+  const [analyzeBudget, setAnalyzeBudget] = useState<number | undefined>(undefined);
 
   const chem = useMemo(() => computeChemistry(squad.slots), [squad]);
   const rating = useMemo(() => computeSquadRating(squad.slots.map((s) => s.player)), [squad]);
@@ -109,6 +116,41 @@ const SquadPage = () => {
   const activeSlotDef = activeSlot ? squad.slots.find((s) => s.id === activeSlot) : null;
   const usedIds = squad.slots.map((s) => s.player?.id).filter(Boolean) as number[];
 
+  const applySwaps = (swaps: SwapSuggestion[]) => {
+    if (!swaps?.length) return;
+    setSquad((s) => {
+      const bySlotId = new Map(swaps.map((sw) => [sw.slotId, sw.player]));
+      return { ...s, slots: s.slots.map((slot) => bySlotId.has(slot.id) ? { ...slot, player: bySlotId.get(slot.id)! } : slot) };
+    });
+    toast.success(`طُبِّق ${swaps.length} استبدال`);
+  };
+
+  const runAnalysis = async (intent: AnalysisIntent, budget?: number) => {
+    if (squad.slots.every((s) => !s.player)) return toast.error("حمّل تشكيلة أولاً.");
+    setAnalysisBusy(intent);
+    try {
+      const res = await squadAnalyzerApi.analyze(squad, intent, budget ?? analyzeBudget);
+      setAnalysis(res);
+      // For explicit action intents, auto-apply the returned swap set.
+      if (intent === "chem" && res.actions.improveChem.length) applySwaps(res.actions.improveChem);
+      else if (intent === "attack" && res.actions.upgradeAttack.length) applySwaps(res.actions.upgradeAttack);
+      else if (intent === "weakest" && res.actions.replaceWeakest) applySwaps([res.actions.replaceWeakest]);
+      else if (intent === "budget" && res.actions.optimizeBudget.length) applySwaps(res.actions.optimizeBudget);
+    } catch (e: any) {
+      toast.error(e.message || "فشل التحليل.");
+    } finally {
+      setAnalysisBusy(null);
+    }
+  };
+
+  const handleAnalyzedSquad = (loaded: Squad, budget?: number) => {
+    setSquad(loaded);
+    setAnalyzeBudget(budget);
+    setAnalysis(null);
+    // Kick off an initial analysis right after loading.
+    setTimeout(() => runAnalysis("general", budget), 200);
+  };
+
   return (
     <>
       <Helmet>
@@ -116,16 +158,22 @@ const SquadPage = () => {
         <meta name="description" content="ابنِ تشكيلة FC 26 المثالية على الملعب مع كيمياء وسعر مباشر، وابنِ بالذكاء الاصطناعي بميزانيتك." />
       </Helmet>
       <div className="min-h-[calc(100vh-4rem)] px-3 pt-4 pb-32 max-w-5xl mx-auto" dir="rtl">
-        <header className="mb-3">
-          <div className="flex items-center gap-2">
+        <header className="mb-3 flex items-start gap-2">
+          <div className="flex items-center gap-2 flex-1 min-w-0">
             <div className="w-9 h-9 rounded-xl bg-gradient-primary grid place-items-center shadow-[var(--shadow-glow)]">
               <Wand2 className="w-4 h-4 text-primary-foreground" />
             </div>
-            <div>
+            <div className="min-w-0">
               <h1 className="text-lg font-black">Squad Builder</h1>
-              <p className="text-[11px] text-muted-foreground">ابنِ تشكيلتك يدوياً أو دع مدرب futmac يبنيها لك</p>
+              <p className="text-[11px] text-muted-foreground truncate">ابنِ تشكيلتك يدوياً أو دع مدرب futmac يبنيها لك</p>
             </div>
           </div>
+          <button
+            onClick={() => setAnalyzeOpen(true)}
+            className="shrink-0 h-9 px-3 rounded-xl border border-primary/40 bg-primary/10 hover:bg-primary/20 text-primary text-xs font-black flex items-center gap-1.5 transition-fluid"
+          >
+            <ImagePlus className="w-4 h-4" /> حلّل تشكيلتي
+          </button>
         </header>
 
         {/* Formation tabs */}
@@ -202,6 +250,15 @@ const SquadPage = () => {
           </div>
         )}
 
+        {analysis && (
+          <AnalysisPanel
+            analysis={analysis}
+            busy={analysisBusy}
+            onAction={(intent) => runAnalysis(intent)}
+            onApplySwaps={applySwaps}
+          />
+        )}
+
         <CandidateSheet
           open={!!activeSlot}
           slotId={activeSlot}
@@ -209,6 +266,12 @@ const SquadPage = () => {
           excludeIds={usedIds}
           onPick={pickPlayer}
           onClose={() => setActiveSlot(null)}
+        />
+
+        <AnalyzeSheet
+          open={analyzeOpen}
+          onClose={() => setAnalyzeOpen(false)}
+          onSquadReady={handleAnalyzedSquad}
         />
       </div>
     </>
