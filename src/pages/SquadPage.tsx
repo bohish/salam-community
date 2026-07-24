@@ -250,6 +250,15 @@ const SquadPage = () => {
           </div>
         )}
 
+        {analysis && (
+          <AnalysisPanel
+            analysis={analysis}
+            busy={analysisBusy}
+            onAction={(intent) => runAnalysis(intent)}
+            onApplySwaps={applySwaps}
+          />
+        )}
+
         <CandidateSheet
           open={!!activeSlot}
           slotId={activeSlot}
@@ -257,6 +266,12 @@ const SquadPage = () => {
           excludeIds={usedIds}
           onPick={pickPlayer}
           onClose={() => setActiveSlot(null)}
+        />
+
+        <AnalyzeSheet
+          open={analyzeOpen}
+          onClose={() => setAnalyzeOpen(false)}
+          onSquadReady={handleAnalyzedSquad}
         />
       </div>
     </>
