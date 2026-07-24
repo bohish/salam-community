@@ -117,10 +117,10 @@ const tools = [
     type: 'function',
     function: {
       name: 'search_players',
-      description: 'ابحث بالاسم في قاعدة MSMC. يعيد اللاعبين المطابقين مع مركزهم وتقييمهم.',
+      description: 'بحث هجين عن لاعب بالاسم: يبدأ بمطابقة دقيقة في MSMC، ثم بحث ضبابي (أسماء جزئية/شائعة/تهجئات مختلفة) داخل قاعدة FUT.GG. لا يفشل بسبب عدم مطابقة نص حرفياً.',
       parameters: {
         type: 'object',
-        properties: { name: { type: 'string' }, limit: { type: 'integer', minimum: 1, maximum: 10, default: 5 } },
+        properties: { name: { type: 'string' }, limit: { type: 'integer', minimum: 1, maximum: 15, default: 8 } },
         required: ['name'],
       },
     },
@@ -129,8 +129,25 @@ const tools = [
     type: 'function',
     function: {
       name: 'get_player',
-      description: 'اجلب تفاصيل لاعب بواسطة EA ID.',
+      description: 'اجلب تفاصيل لاعب كاملة بواسطة EA ID (يشمل التقييمات الست PAC/SHO/PAS/DRI/DEF/PHY، القدم، المهارات، النجوم).',
       parameters: { type: 'object', properties: { id: { type: 'integer' } }, required: ['id'] },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'compare_players',
+      description: 'قارن لاعبَين جنباً إلى جنب. استخدم هذه لأي طلب مقارنة. تبحث عن كل اسم بشكل هجين (دقيق ثم ضبابي)، وإن وُجد عدة مرشحين تعيدهم للاختيار. تُعيد الإحصائيات الست + التقييم + المركز + السعر لكل لاعب.',
+      parameters: {
+        type: 'object',
+        properties: {
+          player_a: { type: 'string', description: 'اسم اللاعب الأول (كامل أو جزئي أو تهجئة شائعة).' },
+          player_b: { type: 'string', description: 'اسم اللاعب الثاني.' },
+          id_a: { type: 'integer', description: 'اختياري: EA ID لتحديد اللاعب الأول بدقة إن كان معروفاً.' },
+          id_b: { type: 'integer', description: 'اختياري: EA ID للاعب الثاني.' },
+        },
+        required: ['player_a', 'player_b'],
+      },
     },
   },
   {
@@ -171,6 +188,79 @@ const tools = [
     },
   },
 ];
+
+// ---------- Fuzzy name utilities ----------
+function normText(s: string): string {
+  return (s || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\u0600-\u06ff\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+function tokens(s: string): string[] { return normText(s).split(' ').filter(Boolean); }
+function isSubseq(needle: string, hay: string): boolean {
+  let i = 0;
+  for (let j = 0; j < hay.length && i < needle.length; j++) if (hay[j] === needle[i]) i++;
+  return i === needle.length;
+}
+// Common alias/spelling map for tricky FIFA names
+const NAME_ALIASES: Record<string, string[]> = {
+  'salah': ['mohamed salah', 'mo salah', 'm salah', 'صلاح', 'محمد صلاح'],
+  'mbappe': ['kylian mbappe', 'mbappé', 'mbappe kylian', 'مبابي'],
+  'haaland': ['erling haaland', 'håland', 'هالاند'],
+  'ronaldo': ['cristiano ronaldo', 'cr7', 'رونالدو', 'كريستيانو'],
+  'messi': ['lionel messi', 'leo messi', 'ميسي'],
+  'benzema': ['karim benzema', 'بنزيمة'],
+  'bellingham': ['jude bellingham', 'بيلينغهام'],
+  'vinicius': ['vinicius jr', 'vini jr', 'vinícius', 'فينيسيوس'],
+  'rodri': ['rodrigo hernandez', 'rodri hernandez'],
+  'debruyne': ['kevin de bruyne', 'kdb', 'دي بروين'],
+  'de bruyne': ['kevin de bruyne', 'kdb'],
+};
+function expandAliases(q: string): string[] {
+  const n = normText(q);
+  const out = new Set<string>([n]);
+  for (const [k, vals] of Object.entries(NAME_ALIASES)) {
+    if (n === k || n.includes(k) || vals.some((v) => normText(v) === n)) {
+      out.add(k);
+      for (const v of vals) out.add(normText(v));
+    }
+  }
+  return [...out];
+}
+function scorePoolMatch(p: FGPlayer, q: string): number {
+  const name = normText(displayName(p));
+  const nameToks = tokens(displayName(p));
+  const qToks = tokens(q);
+  if (!qToks.length) return 0;
+  if (name === q) return 10000;
+  if (nameToks[nameToks.length - 1] === q) return 9000;
+  if (nameToks.includes(q)) return 8500;
+  if (qToks.every((t) => nameToks.includes(t))) return 8000;
+  if (nameToks.some((w) => w.startsWith(q))) return 7000;
+  if (name.startsWith(q)) return 6500;
+  if (name.includes(q)) return 5000;
+  if (q.length >= 3 && isSubseq(q, name)) return 500;
+  return 0;
+}
+async function fuzzyFindInPool(query: string, limit = 8): Promise<FGPlayer[]> {
+  const pool = await getPool();
+  const queries = expandAliases(query);
+  const scored = new Map<number, { p: FGPlayer; s: number }>();
+  for (const q of queries) {
+    for (const p of pool) {
+      const s = scorePoolMatch(p, q);
+      if (s <= 0) continue;
+      const id = p.basePlayerEaId ?? p.eaId;
+      const prev = scored.get(id);
+      const total = s + Math.min(99, p.overall);
+      if (!prev || prev.s < total) scored.set(id, { p, s: total });
+    }
+  }
+  return [...scored.values()].sort((a, b) => b.s - a.s).slice(0, limit).map((x) => x.p);
+}
 
 // ---------- Tool implementations ----------
 const jsonRes = (body: unknown, status = 200) =>
