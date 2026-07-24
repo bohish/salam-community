@@ -268,25 +268,46 @@ const jsonRes = (body: unknown, status = 200) =>
 
 async function toolSearchMsmc(args: any) {
   const name = String(args?.name ?? '').trim();
-  const limit = Math.min(Number(args?.limit ?? 5) || 5, 10);
+  const limit = Math.min(Number(args?.limit ?? 8) || 8, 15);
   if (!name) return { error: 'name مطلوب', players: [] };
+
+  // 1) Exact match via MSMC
+  const exact: any[] = [];
   try {
-    const r = await fetch(`${MSMC}/player/name/${encodeURIComponent(name)}`);
-    if (!r.ok) { console.warn('[search] msmc %d for %s', r.status, name); return { players: [], note: 'لم أجد نتائج في قاعدة البيانات.' }; }
-    const raw = await r.json();
-    const arr = Array.isArray(raw) ? raw : [raw];
-    const players = arr.filter(Boolean).slice(0, limit).map((p: any) => ({
-      id: Number(p.ID), name: p.Name, rating: Number(p.OVR),
-      position: normalizePosition(p.Position) ?? p.Position,
-      altPositions: (p['Alternative positions'] ?? []).map((x: string) => normalizePosition(x) ?? x),
-      club: p.Team, nation: p.Nation, league: p.League,
-    }));
-    console.log('[search] name=%s → %d results', name, players.length);
-    return { players, count: players.length };
-  } catch (e) {
-    console.error('[search] error', (e as Error).message);
-    return { players: [], error: 'تعذّر البحث حالياً.' };
+    for (const q of expandAliases(name).slice(0, 3)) {
+      const r = await fetch(`${MSMC}/player/name/${encodeURIComponent(q)}`);
+      if (!r.ok) continue;
+      const raw = await r.json();
+      const arr = Array.isArray(raw) ? raw : [raw];
+      for (const p of arr) if (p?.ID) exact.push(p);
+      if (exact.length >= limit) break;
+    }
+  } catch (e) { console.warn('[search] msmc error', (e as Error).message); }
+
+  const exactShaped = exact.slice(0, limit).map((p: any) => ({
+    id: Number(p.ID), name: p.Name, rating: Number(p.OVR),
+    position: normalizePosition(p.Position) ?? p.Position,
+    altPositions: (p['Alternative positions'] ?? []).map((x: string) => normalizePosition(x) ?? x),
+    club: p.Team, nation: p.Nation, league: p.League,
+    match: 'exact' as const,
+  }));
+
+  if (exactShaped.length > 0) {
+    console.log('[search] name="%s" exact=%d', name, exactShaped.length);
+    return { players: exactShaped, count: exactShaped.length, strategy: 'exact' };
   }
+
+  // 2) Fuzzy match via FUT.GG pool
+  const fuzzy = await fuzzyFindInPool(name, limit);
+  const fuzzyShaped = fuzzy.map((p) => ({ ...shape(p), match: 'fuzzy' as const }));
+  console.log('[search] name="%s" fuzzy=%d', name, fuzzyShaped.length);
+  if (fuzzyShaped.length > 0) {
+    return { players: fuzzyShaped, count: fuzzyShaped.length, strategy: 'fuzzy',
+      note: 'لم أجد مطابقة دقيقة، هذه أقرب النتائج من قاعدة FUT.GG.' };
+  }
+
+  return { players: [], count: 0, strategy: 'none',
+    note: `لم يُعثر على أي لاعب باسم "${name}" في قاعدة بيانات Futmac.` };
 }
 
 async function toolGetMsmc(args: any) {
