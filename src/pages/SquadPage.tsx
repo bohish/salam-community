@@ -158,16 +158,22 @@ const SquadPage = () => {
         <meta name="description" content="ابنِ تشكيلة FC 26 المثالية على الملعب مع كيمياء وسعر مباشر، وابنِ بالذكاء الاصطناعي بميزانيتك." />
       </Helmet>
       <div className="min-h-[calc(100vh-4rem)] px-3 pt-4 pb-32 max-w-5xl mx-auto" dir="rtl">
-        <header className="mb-3">
-          <div className="flex items-center gap-2">
+        <header className="mb-3 flex items-start gap-2">
+          <div className="flex items-center gap-2 flex-1 min-w-0">
             <div className="w-9 h-9 rounded-xl bg-gradient-primary grid place-items-center shadow-[var(--shadow-glow)]">
               <Wand2 className="w-4 h-4 text-primary-foreground" />
             </div>
-            <div>
+            <div className="min-w-0">
               <h1 className="text-lg font-black">Squad Builder</h1>
-              <p className="text-[11px] text-muted-foreground">ابنِ تشكيلتك يدوياً أو دع مدرب futmac يبنيها لك</p>
+              <p className="text-[11px] text-muted-foreground truncate">ابنِ تشكيلتك يدوياً أو دع مدرب futmac يبنيها لك</p>
             </div>
           </div>
+          <button
+            onClick={() => setAnalyzeOpen(true)}
+            className="shrink-0 h-9 px-3 rounded-xl border border-primary/40 bg-primary/10 hover:bg-primary/20 text-primary text-xs font-black flex items-center gap-1.5 transition-fluid"
+          >
+            <ImagePlus className="w-4 h-4" /> حلّل تشكيلتي
+          </button>
         </header>
 
         {/* Formation tabs */}
