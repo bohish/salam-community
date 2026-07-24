@@ -146,7 +146,7 @@ const SquadPage = () => {
 
         <SquadHUD rating={rating} chem={chem.team} totalPrice={price.total} missingPrices={price.missing} filled={filled} total={squad.slots.length} />
 
-        <div className="my-4">
+        <div className="mt-8 mb-6 pt-8">
           <Pitch
             slots={squad.slots}
             chem={chem}
