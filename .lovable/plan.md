@@ -1,40 +1,81 @@
-هدف: ربط "مدرب futmac الذكي" بـ OpenAI عبر Edge Function آمن، مع إبقاء `OPENAI_API_KEY` على الخادم فقط، والاحتفاظ بواجهة الشات الحالية دون تغيير بصري.
+## Analyze My Squad — feature plan
 
-## 1. تجهيز السر
-- التحقق من وجود `OPENAI_API_KEY` في أسرار المشروع (غير موجود حالياً حسب `fetch_secrets`).
-- طلبه من المستخدم عبر `add_secret` باسم `OPENAI_API_KEY` مع تلميح `sk-...`.
+Add an end-to-end flow where the user uploads an FC/FUTBIN/Futmac squad screenshot and Futmac reconstructs the squad inside the existing Squad Builder, then runs an AI analysis with actionable one-click fixes.
 
-## 2. إنشاء Edge Function جديد: `supabase/functions/ai-coach/index.ts`
-- CORS كامل (OPTIONS + headers في كل الردود) بنفس نمط `futgg-proxy`.
-- `verify_jwt = false` افتراضياً (لا يحتاج تسجيل دخول لاستخدام المدرب).
-- المدخلات: `{ messages: {role, content}[] }` مع تحقق Zod بسيط (طول الرسائل، حد أقصى للتاريخ ~20 رسالة).
-- يبني `messages` مع system prompt عربي متخصص في FIFA/EA FC 26 (بناء تشكيلة، تحليل، مقارنة، ترقيات).
-- يستدعي `https://api.openai.com/v1/chat/completions`:
-  - `model: gpt-4o-mini` (توازن سرعة/جودة/تكلفة، مناسب لمساعد شات).
-  - `temperature: 0.7`, `max_tokens: 700`.
-  - `Authorization: Bearer ${OPENAI_API_KEY}` من `Deno.env`.
-- معالجة الأخطاء: 401 (مفتاح خاطئ) → 500 مع رسالة واضحة، 429 → 429، غير ذلك → 502.
-- يُرجع `{ reply: string }`.
+### 1. UX flow (on `/squad` page)
 
-## 3. تحديث طبقة الخدمة: `src/services/aiCoach.ts`
-- استبدال `mockReply` + `simulatedLatency` بنداء حقيقي:
-  - `supabase.functions.invoke("ai-coach", { body: { messages }, signal })`.
-  - تحويل `history + userPrompt` إلى مصفوفة `{role, content}` قبل الإرسال.
-  - إرجاع `data.reply`.
-- الحفاظ على نفس التوقيع (`sendCoachMessage(history, userPrompt, context, signal)`) حتى لا يتغير `AICoach.tsx`.
-- الاحتفاظ بـ `SUGGESTED_PROMPTS` و `createMessage` كما هي.
-- إزالة كل منطق الـ mock والتعليقات التي تشير إلى المستقبل.
+- New header button "🖼️ حلّل تشكيلتي" opens an upload sheet.
+- Sheet: drop-zone/file input (accept PNG/JPG, max ~5 MB), budget input (coins, optional), formation hint (optional dropdown, defaults to auto-detect), "تحليل" button.
+- On submit: show progress states (Uploading → Detecting players → Matching database → Building squad → Analyzing).
+- Detected players list appears with each slot showing:
+  - The AI-suggested player (name, rating, position, club, avatar).
+  - Confidence badge. If `confidence < 0.75` OR multiple candidates → user must pick from a small candidate list (or "skip slot"/"search manually") before the squad loads.
+- After confirmation: squad populates the pitch via existing `SquadPage` state; live HUD (chem/rating/price) updates automatically.
+- New "AI Analysis" panel appears under the pitch with sections:
+  - Strengths / Weaknesses / Chemistry notes / Tactical advice.
+  - Suggested upgrades (respect budget) — each row shows current → suggested with delta rating/price.
+  - Cheaper alternatives per slot.
+  - One-click action buttons (each just dispatches a new AI request with a fixed intent):
+    - "تحسين الكيمياء" (Improve Chemistry)
+    - "ترقية الهجوم" (Upgrade Attack)
+    - "استبدال الأضعف" (Replace Weakest)
+    - "ضمن الميزانية" (Optimize for Budget)
 
-## 4. تحديث نص الواجهة الصغير في `AICoach.tsx`
-- تغيير سطر التذييل من "إجابات تجريبية · سيتم ربط الذكاء الاصطناعي الحقيقي قريباً" إلى "مدعوم بالذكاء الاصطناعي".
-- لا تغييرات أخرى على UI/UX.
+### 2. Backend — new edge function `analyze-squad`
 
-## 5. الاختبار
-- نشر الفانكشن عبر `deploy_edge_functions(["ai-coach"])`.
-- اختبار عبر `curl_edge_functions` برسالة عربية تجريبية والتأكد من رد نصي سليم.
-- التأكد من عدم ظهور المفتاح في أي ملف frontend.
+Single function handling two modes via `action` field:
 
-## ملاحظات
-- المفتاح يبقى في `Deno.env` فقط؛ لا `VITE_` ولا تسريب للمتصفح.
-- سجل المحادثة يُرسَل في كل طلب (OpenAI stateless) — سبق أن اختار المستخدم عدم حفظ تاريخ في قاعدة البيانات، لذا يبقى in-session فقط كما هو الآن.
-- الحفاظ على `AbortController` الحالي عبر تمرير `signal` إلى `functions.invoke`.
+- `detect`: input `{ image: base64, formationHint?: string }`.
+  1. Call vision model `google/gemini-3.1-flash` (chat completions, image_url with data URL) with a strict JSON-only prompt: return `{ formation, players: [{ position, name, rating?, club?, nation?, cardName?, confidence }] }`.
+  2. For each detected player, call the existing hybrid resolver (reuse `fuzzy` search against FUT.GG pool + MSMC exact) to produce a **candidates list** (top 3) with `matchConfidence` per candidate.
+  3. Return `{ formation, slots: [{ position, detected, candidates: [...] }] }` — no auto-selection when top candidate `< 0.75`.
+
+- `analyze`: input `{ squad: [{ position, playerId, rating, price, club, nation, league }], budget?: number, intent?: 'general'|'chem'|'attack'|'weakest'|'budget' }`.
+  1. Recompute chemistry/rating/price server-side (reuse chemistry logic).
+  2. For each slot, fetch top candidates from the FUT.GG pool matching position + budget filter.
+  3. Send everything to `openai/gpt-5-mini` (or `gpt-5.4-mini`) as structured grounded prompt. System prompt forbids inventing players; must return JSON:
+     ```json
+     {
+       "summary": "...",
+       "strengths": ["..."],
+       "weaknesses": ["..."],
+       "chemistry": { "current": 27, "target": 33, "notes": ["..."] },
+       "tactics": ["..."],
+       "upgrades": [{ "slot": 4, "reason": "...", "suggestedId": 231747, "deltaRating": +3, "deltaPrice": 45000 }],
+       "cheaperAlternatives": [{ "slot": 7, "suggestedId": ..., "savings": 20000 }],
+       "actions": { "improveChem": [swap list], "upgradeAttack": [...], "replaceWeakest": {...}, "optimizeBudget": [...] }
+     }
+     ```
+  4. Return the JSON directly to the client.
+
+Both modes stream nothing (JSON response), reuse existing FUT.GG pool + normalization utilities. Uses `OPENAI_API_KEY` (already set). Vision call also uses OpenAI (`gpt-4o-mini`) as fallback if Gemini is not available — but plan is **OpenAI `gpt-4o` vision** since it's already wired in the coach.
+
+### 3. Frontend files
+
+New:
+- `src/services/squadAnalyzer.ts` — `detectFromImage(file, budget?)`, `analyzeSquad(squad, intent, budget?)`, base64 conversion, error handling.
+- `src/components/squad/AnalyzeSheet.tsx` — upload + budget input + progress states + candidate confirmation UI.
+- `src/components/squad/AnalysisPanel.tsx` — renders analysis JSON with sections + one-click buttons.
+
+Modified:
+- `src/pages/SquadPage.tsx` — add "Analyze" button in header, wire sheet, apply detected squad to state, render analysis panel, wire one-click actions (each calls `analyzeSquad(..., intent)` then applies returned `actions[intent]` swaps to the pitch).
+
+### 4. Confidence & confirmation rule
+
+- Top candidate ≥ 0.85 AND clearly better than #2 (gap ≥ 0.15) → auto-fill slot, but still show "change" affordance.
+- Otherwise → slot marked "requires confirmation", user picks from candidates or opens search modal.
+- If no candidate at all → slot left empty with a note "لم يُتعرّف على اللاعب — أضفه يدوياً".
+
+### 5. Technical details
+
+- Image sent as base64 data URL, capped at 1600px on the longest side (client-side resize with canvas) to keep payload under 4 MB and vision latency low.
+- Vision system prompt: strictly JSON, Arabic + English names allowed, output list ordered by pitch position (top→bottom rows).
+- All player data (name/rating/price/club) written to state comes from the DB match, never from the vision output — vision is used only to identify who the card represents.
+- Errors surfaced with sonner toasts; 429/402 handled with clear Arabic messages consistent with the existing coach.
+- No new tables. Squad state stays in memory / existing store.
+
+### 6. Out of scope (not in this change)
+
+- Saving analyzed squads to the DB / user profile.
+- OCR for card prices/chemistry numbers directly from the image (we recompute from DB).
+- Video or multi-image uploads.
