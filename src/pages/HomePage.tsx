@@ -43,6 +43,7 @@ const HomePage = () => {
   const top = useTopRanked(24);
   const random = useRandomBatch(12, "featured");
   const { promos, isLoading: promosLoading } = useAllPromos(6);
+  const newPlayers = useNewPlayers(3);
 
   return (
     <div className="container mx-auto px-4 py-4 max-w-5xl">
