@@ -1,15 +1,20 @@
 import type { Player, PlayerStatGroup } from "@/types/player";
 
-const overallFor = (title: string, p: Player) =>
-  ({
+const overallFor = (title: string, p: Player, stats: { value: number }[]) => {
+  const map: Record<string, number> = {
     Pace: p.pace,
     Shooting: p.shooting,
     Passing: p.passing,
     Dribbling: p.dribbling,
     Defending: p.defending,
     Physical: p.physical,
-    Goalkeeping: p.pace,
-  } as Record<string, number>)[title] ?? 0;
+  };
+  if (map[title] != null) return map[title];
+  // Fallback (Goalkeeping etc.): average non-zero sub-stats.
+  const nz = stats.map((s) => s.value).filter((v) => v > 0);
+  if (!nz.length) return 0;
+  return Math.round(nz.reduce((a, b) => a + b, 0) / nz.length);
+};
 
 const toneClass = (v: number) => {
   if (v >= 90) return "text-emerald-500";
@@ -27,12 +32,21 @@ const barClass = (v: number) => {
   return "bg-red-500";
 };
 
-const SubStat = ({ label, value }: { label: string; value: number }) => (
-  <div className="grid grid-cols-[2rem_1fr] items-center gap-2 py-1 text-[12px]">
-    <span className={`font-mono-num font-semibold tabular-nums text-right ${toneClass(value)}`}>{value}</span>
-    <span className="text-muted-foreground truncate text-left">{label}</span>
-  </div>
-);
+const SubStat = ({ label, value }: { label: string; value: number }) => {
+  const missing = !value;
+  return (
+    <div className="grid grid-cols-[2rem_1fr] items-center gap-2 py-1 text-[12px]">
+      <span
+        className={`font-mono-num font-semibold tabular-nums text-right ${
+          missing ? "text-muted-foreground/50" : toneClass(value)
+        }`}
+      >
+        {missing ? "—" : value}
+      </span>
+      <span className="text-muted-foreground truncate text-left">{label}</span>
+    </div>
+  );
+};
 
 const CategoryBlock = ({
   title,
@@ -43,21 +57,33 @@ const CategoryBlock = ({
   value: number;
   stats: { key: string; label: string; value: number }[];
 }) => {
-  const width = Math.min(100, Math.max(2, value));
+  const hasData = value > 0 || stats.some((s) => s.value > 0);
+  const width = Math.min(100, Math.max(hasData ? 2 : 0, value));
   return (
     <div className="py-3">
       <div className="flex items-baseline justify-between mb-2">
-        <span className={`font-mono-num text-[16px] font-semibold tabular-nums ${toneClass(value)}`}>{value}</span>
+        <span
+          className={`font-mono-num text-[16px] font-semibold tabular-nums ${
+            hasData ? toneClass(value) : "text-muted-foreground/50"
+          }`}
+        >
+          {hasData ? value : "—"}
+        </span>
         <h3 className="text-[12px] font-semibold uppercase tracking-[0.14em] text-foreground/90">{title}</h3>
       </div>
       <div className="h-[3px] w-full rounded-full bg-muted/40 overflow-hidden mb-2.5">
-        <div className={`h-full rounded-full ${barClass(value)}`} style={{ width: `${width}%` }} />
+        {hasData && (
+          <div className={`h-full rounded-full ${barClass(value)}`} style={{ width: `${width}%` }} />
+        )}
       </div>
       <div className="divide-y divide-border/30">
         {stats.map((s) => (
           <SubStat key={s.key} label={s.label} value={s.value} />
         ))}
       </div>
+      {!hasData && (
+        <p className="text-[10.5px] text-muted-foreground/70 mt-2">التفاصيل غير متوفرة لهذه البطاقة.</p>
+      )}
     </div>
   );
 };
@@ -75,7 +101,7 @@ const FaceStats = ({ player, groups }: { player: Player; groups: PlayerStatGroup
             key={g.title}
             className={`${i >= 2 ? "sm:border-t sm:border-border/30" : ""}`}
           >
-            <CategoryBlock title={g.title} value={overallFor(g.title, player)} stats={g.stats} />
+            <CategoryBlock title={g.title} value={overallFor(g.title, player, g.stats)} stats={g.stats} />
           </div>
         ))}
       </div>
