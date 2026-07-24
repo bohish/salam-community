@@ -93,32 +93,52 @@ async function fetchPlayerFromFutgg(id: number | string, signal?: AbortSignal): 
   return null;
 }
 
-/** Merge detailed in-game stats from MSMC into a FUT.GG player. */
-async function enrichFromMsmc(player: Player, id: string, signal?: AbortSignal): Promise<Player> {
+/** Fetch full detailed player data from MSMC (has every sub-stat). */
+async function fetchFromMsmc(id: string, signal?: AbortSignal): Promise<Player | null> {
   try {
     const raw = await req<RawPlayer>(`/player/id/${encodeURIComponent(id)}`, signal);
-    if (!raw || !raw.ID) return player;
-    return { ...player, raw };
+    if (!raw || !raw.ID) return null;
+    return toPlayer(raw);
   } catch {
-    return player;
+    return null;
   }
+}
+
+/** Merge a FUT.GG player (card art, price, promo info) into an MSMC-based player. */
+function mergeFutgg(base: Player, fg: Player): Player {
+  return {
+    ...base,
+    // Prefer FUT.GG art/URLs when present (higher-quality special-card images).
+    cardUrl: fg.cardUrl || base.cardUrl,
+    eaUrl: base.eaUrl || fg.eaUrl,
+    // Preserve MSMC positions/nation/club (canonical), but fall back if MSMC missing.
+    club: base.club || fg.club,
+    league: base.league || fg.league,
+    nation: base.nation || fg.nation,
+    altPositions: base.altPositions.length ? base.altPositions : fg.altPositions,
+    weakFoot: base.weakFoot || fg.weakFoot,
+    skillMoves: base.skillMoves || fg.skillMoves,
+    preferredFoot: base.preferredFoot || fg.preferredFoot,
+    height: base.height || fg.height,
+  };
 }
 
 export const fc26Api = {
   async getById(id: number | string, signal?: AbortSignal): Promise<Player> {
     const idStr = String(id).trim();
     if (!idStr) throw new ApiError("Missing player id");
-    // 1) FUT.GG (via proxy) — primary source; stable and no rate limits for us.
-    const fg = await fetchPlayerFromFutgg(idStr, signal);
-    if (fg) return enrichFromMsmc(fg, idStr, signal);
-    // 2) Fallback to msmc direct — may 429 but worth trying.
-    try {
-      const raw = await req<RawPlayer>(`/player/id/${encodeURIComponent(idStr)}`, signal);
-      return toPlayer(raw);
-    } catch (e) {
-      throw new ApiError(`Player ${idStr} not found`, (e as ApiError).status);
-    }
+    // Run MSMC (detailed sub-stats) and FUT.GG (card art / special versions) in parallel.
+    // MSMC is authoritative for gameplay stats; FUT.GG fills in special-card visuals.
+    const [msmc, fg] = await Promise.all([
+      fetchFromMsmc(idStr, signal),
+      fetchPlayerFromFutgg(idStr, signal),
+    ]);
+    if (msmc && fg) return mergeFutgg(msmc, fg);
+    if (msmc) return msmc;
+    if (fg) return fg;
+    throw new ApiError(`Player ${idStr} not found`);
   },
+
   async getByRank(rank: number, signal?: AbortSignal): Promise<Player> {
     const raw = await req<RawPlayer>(`/player/rank/${rank}`, signal);
     return toPlayer(raw);
