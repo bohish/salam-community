@@ -51,6 +51,7 @@ const App = () => (
               <Route path="/search" element={<SearchPage />} />
               <Route path="/players" element={<PlayersPage />} />
               <Route path="/events" element={<EventsPage />} />
+              <Route path="/new" element={<NewPlayersPage />} />
               <Route path="/event/:slug" element={<EventDetailPage />} />
               <Route path="/compare" element={<ComparePage />} />
               <Route path="/squad" element={<SquadPage />} />
