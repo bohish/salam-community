@@ -164,13 +164,20 @@ const EventsPage = () => {
               تعذّر تحميل البروموات من FUT.GG.
             </div>
           )}
-          {promosQ.promos.length > 0 && (
+          {visiblePromos.length > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-              {promosQ.promos.map((g) => <PromoCard key={g.slug} g={g} />)}
+              {visiblePromos.map((g) => <PromoCard key={g.slug} g={g} />)}
+            </div>
+          )}
+          {!promosQ.isLoading && !promosQ.error && visiblePromos.length === 0 && (
+            <div className="glass rounded-xl p-8 text-center text-sm text-muted-foreground">
+              لا توجد بروموات نشطة حالياً.
             </div>
           )}
         </>
       )}
+
+
 
       {/* Other tabs (paginated) */}
       {tab !== "promos" && (
