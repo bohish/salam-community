@@ -104,8 +104,12 @@ const EventsPage = () => {
   const source = tab === "new" ? hub : all;
 
   const players =
-    tab === "promos" ? [] : (source.data?.data ?? []).filter((p) => matches(p, tab));
+    tab === "promos"
+      ? []
+      : (source.data?.data ?? []).filter((p) => matches(p, tab) && !!cardImg(p));
   const totalPages = source.data?.totalPages ?? 1;
+  const visiblePromos = promosQ.promos.filter((g) => g.preview.some((p) => !!cardImg(p)));
+
 
   return (
     <div className="container mx-auto px-4 py-4 max-w-5xl">
