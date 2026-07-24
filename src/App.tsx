@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import AppHeader from "@/components/AppHeader";
 import BottomNav from "@/components/BottomNav";
+import AICoach from "@/components/AICoach";
 import HomePage from "@/pages/HomePage";
 import SearchPage from "@/pages/SearchPage";
 import PlayersPage from "@/pages/PlayersPage";
