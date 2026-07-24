@@ -138,6 +138,34 @@ const HomePage = () => {
         )}
       </Section>
 
+      <Section
+        title="لاعبون جدد"
+        action={
+          <Link to="/new" className="text-xs text-primary flex items-center gap-1">
+            <Zap className="w-3 h-3" /> عرض الكل <ArrowLeft className="w-3 h-3" />
+          </Link>
+        }
+      >
+        {newPlayers.isLoading && (
+          <div className="flex gap-3 overflow-x-auto hide-scrollbar -mx-4 px-4">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="w-40 shrink-0"><PlayerCardSkeleton /></div>
+            ))}
+          </div>
+        )}
+        {newPlayers.data && newPlayers.data.length > 0 && (
+          <div className="flex gap-3 overflow-x-auto hide-scrollbar snap-x snap-mandatory -mx-4 px-4">
+            {newPlayers.data.slice(0, 12).map((p) => (
+              <div key={p.id} className="w-40 shrink-0 snap-start">
+                <NewPlayerCard p={p} />
+              </div>
+            ))}
+          </div>
+        )}
+      </Section>
+
+
+
       <Section title="لاعبون مميزون">
         {random.isLoading && (
           <div className="flex gap-3 overflow-x-auto hide-scrollbar -mx-4 px-4">
