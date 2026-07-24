@@ -39,11 +39,16 @@ const Row = ({ players }: { players: any[] }) => (
   </div>
 );
 
+const hasImage = (p: any) => !!(p?.cardImageUrl || p?.simpleCardImageUrl || p?.socialImageUrl || p?.imageUrl);
+
 const HomePage = () => {
   const top = useTopRanked(24);
   const random = useRandomBatch(12, "featured");
-  const { promos, isLoading: promosLoading } = useAllPromos(6);
-  const newPlayers = useNewPlayers(3);
+  const { promos: allPromos, isLoading: promosLoading } = useAllPromos(6);
+  const promos = allPromos.filter((g) => g.preview.some(hasImage));
+  const newPlayersQ = useNewPlayers(3);
+  const newPlayers = (newPlayersQ.data ?? []).filter(hasImage);
+
 
   return (
     <div className="container mx-auto px-4 py-4 max-w-5xl">
