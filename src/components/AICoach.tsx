@@ -271,7 +271,7 @@ const AICoach = () => {
                 </button>
               </form>
               <p className="text-[9px] text-muted-foreground/70 text-center mt-2">
-                إجابات تجريبية · سيتم ربط الذكاء الاصطناعي الحقيقي قريباً
+                مدعوم بالذكاء الاصطناعي
               </p>
             </div>
           </div>
